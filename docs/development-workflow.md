@@ -27,6 +27,8 @@ Jika ada ketidaksesuaian, jangan memilih diam-diam. Tunjukkan bagian yang berten
 
 ## Ringkasan fase
 
+Checklist tugas agent per fase tersedia di [docs/tickets/README.md](tickets/README.md). Workflow ini menjelaskan urutan dan gerbang fase; ticket tersebut memecah pekerjaan menjadi unit yang dapat dikerjakan dalam satu session.
+
 | Fase | Fokus | Gerbang selesai |
 |---|---|---|
 | 0 | Persiapan tugas dan ruang lingkup | Acceptance criteria yang dikerjakan dan keputusan terbuka teridentifikasi |

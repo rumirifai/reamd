@@ -53,6 +53,8 @@ See the [acceptance criteria and Markdown fixtures](docs/acceptance-criteria.md)
 
 See the [development workflow](docs/development-workflow.md) for the recommended implementation phases and verification gates.
 
+See the [development ticket checklists](docs/tickets/README.md) for agent-sized tasks, prerequisites, and acceptance checks.
+
 ---
 
 <a id="reamd-bahasa-indonesia"></a>
@@ -109,3 +111,5 @@ Lihat [spesifikasi command](docs/command-spec.md) untuk rancangan argumen, tema,
 Lihat [kriteria penerimaan dan fixture Markdown](docs/acceptance-criteria.md) untuk cara memeriksa perilaku MVP.
 
 Lihat [workflow pengembangan](docs/development-workflow.md) untuk tahapan implementasi dan gerbang verifikasi yang disarankan.
+
+Lihat [checklist ticket pengembangan](docs/tickets/README.md) untuk tugas agent, prasyarat, dan pemeriksaan penerimaan.

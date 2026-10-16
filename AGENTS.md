@@ -6,6 +6,7 @@
 - Treat `docs/command-spec.md` as the source of truth for command and TUI behavior.
 - Treat `docs/acceptance-criteria.md` as the source of truth for expected behavior and verification.
 - Follow `docs/development-workflow.md` for implementation phases and verification gates.
+- Use one ready ticket from `docs/tickets/README.md` as the scope for each implementation session; follow its blockers and acceptance checklist.
 - If project references conflict, ask the user which decision is current; do not silently choose or change product behavior.
 
 ## Communication and decisions
