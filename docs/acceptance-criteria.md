@@ -29,7 +29,8 @@ Terkait: [spesifikasi command](command-spec.md) dan [analisis teknis](markdown-t
 
 ### AC-MD: CommonMark dan GFM
 
-- Parser mengenali seluruh sintaks CommonMark dan GFM, termasuk elemen blok, inline, list bertingkat, link referensi, tabel, task list, strikethrough, dan autolink.
+- Parser mengenali seluruh sintaks CommonMark dan GFM, termasuk elemen blok, inline, list bertingkat, link referensi, tabel, task list, dan strikethrough. Linkify juga mengenali URL HTTP(S) serta alamat email polos sebagai autolink untuk ditampilkan.
+- Penambahan Linkify di atas profil GFM spec 0.29 adalah perilaku produk yang disengaja. Link email atau protokol selain HTTP(S) tidak membuka aplikasi eksternal; link web hanya dibuka setelah aktivasi eksplisit.
 - Setiap jenis elemen yang dikenali dirender atau memiliki fallback aman yang tetap menyampaikan isi. Tidak ada isi yang hilang diam-diam.
 - Kumpulan conformance test yang sesuai dengan versi spesifikasi/parser yang dipilih harus dijalankan saat library ditetapkan. Versi parser dan profil kesesuaian dicatat dalam test setup.
 - Raw HTML tidak dieksekusi. Tag dan teksnya ditampilkan sebagai teks yang aman.
@@ -147,9 +148,10 @@ Baris kedua
 [Pergi ke bagian](#cara-pakai)
 [Dokumentasi](https://example.com/docs)
 https://example.com
+contact@example.com
 ```
 
-**Expected:** link dapat difokuskan dan diaktifkan dengan keyboard atau mouse. Anchor menuju heading berdasarkan slug gaya GitHub. URL web hanya dibuka setelah aktivasi pengguna dan memakai HTTP/HTTPS.
+**Expected:** link dapat difokuskan dengan keyboard atau mouse. URL HTTP(S) dan alamat email polos dikenali sebagai autolink. Anchor menuju heading berdasarkan slug gaya GitHub. Browser hanya dibuka untuk URL HTTP/HTTPS setelah aktivasi pengguna; alamat email tidak meluncurkan aplikasi eksternal.
 
 ### FX-005: code block dengan baris panjang
 

@@ -26,7 +26,7 @@ With no arguments, `reamd` is planned to show help and usage examples. It accept
 ## Planned MVP
 
 - Read a Markdown file and show it in a scrollable, read-only TUI.
-- Support the full CommonMark and GitHub Flavored Markdown (GFM) syntax, including headings, lists, quotes, tables, links, and code blocks.
+- Support CommonMark and GitHub Flavored Markdown (GFM), including headings, lists, quotes, tables, links, and code blocks. Bare URLs and email addresses are recognized as autolinks.
 - Adapt layout to terminal width. Switch wide tables to a stacked layout when needed.
 - Provide in-app zoom by adjusting layout and wrapping. This will not change the terminal emulator's actual font size.
 - Support `auto`, `dark`, `light`, and `transparent` themes.
@@ -43,7 +43,7 @@ With no arguments, `reamd` is planned to show help and usage examples. It accept
 
 ## Project status
 
-Go has been selected as the implementation language. The parser and TUI libraries, installation method, and build commands have not been selected yet. The distribution goal is to provide ready-to-run binaries so users do not need to install Go themselves.
+Go 1.25 is the approved minimum project toolchain, updated after a transitive dependency security review on 19 October 2026. Goldmark is the approved Markdown parser and tcell is the approved TUI library for planned implementation; application code has not started. The clipboard package, installation method, and build commands have not been selected yet. The distribution goal is to provide ready-to-run binaries so users do not need to install Go themselves.
 
 See the [technical analysis and MVP proposal](docs/markdown-terminal-reader-analysis.md) for the REA observations, design decisions, open questions, and acceptance criteria.
 
@@ -85,7 +85,7 @@ Jika dijalankan tanpa argumen, `reamd` direncanakan menampilkan bantuan dan cont
 ## Rancangan MVP
 
 - Membaca file Markdown dan menampilkannya dalam TUI read-only yang dapat digulir.
-- Mendukung seluruh sintaks CommonMark dan GitHub Flavored Markdown (GFM), termasuk heading, list, quote, tabel, link, dan code block.
+- Mendukung CommonMark dan GitHub Flavored Markdown (GFM), termasuk heading, list, quote, tabel, link, dan code block. URL dan alamat email polos dikenali sebagai autolink.
 - Menyesuaikan layout dengan lebar terminal. Tabel lebar beralih ke tampilan bertumpuk jika diperlukan.
 - Menyediakan zoom di dalam aplikasi dengan mengubah layout dan wrapping. Fitur ini tidak mengubah ukuran font terminal yang sebenarnya.
 - Mendukung tema `auto`, `dark`, `light`, dan `transparent`.
@@ -102,7 +102,7 @@ Jika dijalankan tanpa argumen, `reamd` direncanakan menampilkan bantuan dan cont
 
 ## Status proyek
 
-Go telah dipilih sebagai bahasa implementasi. Library parser dan TUI, cara instalasi, serta perintah build belum ditentukan. Tujuan distribusinya adalah menyediakan binary siap pakai agar pengguna tidak perlu memasang Go sendiri.
+Go 1.25 adalah versi minimum toolchain proyek yang disetujui setelah peninjauan keamanan dependency transitif pada 19 Oktober 2026. Goldmark disetujui sebagai parser Markdown dan tcell sebagai library TUI untuk implementasi yang direncanakan; kode aplikasi belum dimulai. Package clipboard, cara instalasi, serta perintah build belum ditentukan. Tujuan distribusinya adalah menyediakan binary siap pakai agar pengguna tidak perlu memasang Go sendiri.
 
 Lihat [analisis teknis dan rancangan MVP](docs/markdown-terminal-reader-analysis.md) untuk hasil observasi REA, keputusan rancangan, pertanyaan terbuka, dan kriteria penerimaan.
 

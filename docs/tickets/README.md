@@ -20,14 +20,14 @@ Fase 0 workflow bukan ticket produk tersendiri. Checklist persiapan fase 0 diula
 | Ticket | Fase | Judul | Blocked by |
 |---|---:|---|---|
 | [01](01-stack-spike.md) | 1 | Evaluasi stack dan risiko teknis | Tidak ada |
-| [02](02-cli-vertical-slice.md) | 2-3 | Bangun CLI dan vertical slice TUI | 01 |
+| [02](02-cli-vertical-slice.md) | 2-3 | Bangun CLI dan vertical slice TUI | Tidak ada — 01 selesai |
 | [03](03-commonmark-core.md) | 4 | Render elemen inti CommonMark | 02 |
 | [04](04-gfm-responsive-tables.md) | 4 | Lengkapi GFM dan tabel responsif | 03 |
 | [05](05-code-and-safe-content.md) | 4 | Render code dan amankan konten Markdown | 02 |
 | [06](06-themes-zoom-resize.md) | 5 | Tambahkan tema, zoom, dan resize | 03 |
-| [07](07-links-and-anchors.md) | 5 | Navigasi anchor dan aktivasi link | 01, 03 |
+| [07](07-links-and-anchors.md) | 5 | Navigasi anchor dan aktivasi link | 03 |
 | [08](08-mouse-scrollbar.md) | 5 | Tambahkan scroll mouse dan scrollbar | 02 |
-| [09](09-selection-clipboard.md) | 5 | Seleksi teks dan copy ke clipboard | 01, 08 |
+| [09](09-selection-clipboard.md) | 5 | Seleksi teks dan copy ke clipboard | 08 |
 | [10](10-cross-platform-verification.md) | 6 | Verifikasi lintas platform | 04-09 |
 | [11](11-distribution.md) | 7 | Siapkan distribusi dan instalasi | 10 |
 

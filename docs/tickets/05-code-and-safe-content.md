@@ -10,9 +10,9 @@
 
 - [ ] Render fenced code dan inline code sebagai konten kode; wrap baris code panjang dan beri penanda kelanjutan.
 - [ ] Tampilkan blok Mermaid dengan penanda diagram dan source code, tanpa merender diagram.
-- [ ] Tampilkan raw HTML sebagai teks aman; jangan mengeksekusi tag atau isinya.
-- [ ] Netralisasi ESC, BEL, ANSI/OSC, dan karakter kontrol agar tidak dapat membersihkan layar, mengubah judul terminal, atau mengubah clipboard.
-- [ ] Tambahkan fixture test yang berisi byte kontrol aktual, bukan hanya representasi teks `\\x1b`.
+- [ ] Tampilkan raw HTML sebagai teks aman; jangan mengeksekusi tag atau isinya. **Dipindahkan dari checklist Ticket 01:** probe fallback parser bukan uji renderer aplikasi.
+- [ ] Netralisasi ESC, BEL, ANSI/OSC, dan karakter kontrol sebelum output terminal agar tidak dapat membersihkan layar, mengubah judul terminal, atau mengubah clipboard. **Dipindahkan dari checklist Ticket 01:** sanitasi melalui output aplikasi adalah acceptance produk, bukan spike.
+- [ ] Tambahkan fixture test yang berisi byte kontrol aktual, bukan hanya representasi teks `\\x1b`; verifikasi output terminal/pseudo-terminal tidak mengeluarkan kontrol aktif. **Dipindahkan dari checklist Ticket 01:** probe safePlainText scratch belum melewati renderer/output terminal.
 - [ ] Pastikan tidak ada network request ketika dokumen atau gambar dirender.
 
 **Verifikasi:** jalankan test sanitasi dan periksa hasil di terminal/pseudo-terminal untuk memastikan tidak ada control sequence aktif dari dokumen.

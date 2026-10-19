@@ -125,7 +125,8 @@ Zoom mengubah kepadatan layout, penekanan heading, jarak, dan wrapping di dalam 
 
 ## Aturan render yang memengaruhi command
 
-- Format sasaran: CommonMark + GFM.
+- Format sasaran: CommonMark + GFM, dengan Linkify untuk mengenali URL HTTP(S) dan alamat email polos sebagai tautan.
+- Link HTTP(S) hanya dibuka di browser setelah aktivasi eksplisit. Autolink email atau protokol lain tidak membuka aplikasi eksternal.
 - Tabel ditampilkan sebagai tabel jika muat. Jika tidak, tampilkan baris sebagai susunan label/nilai agar isi tidak terpotong.
 - Baris code block yang lebih panjang dari lebar terminal di-wrap otomatis dan diberi penanda visual bahwa baris berlanjut.
 - Link menampilkan label dan URL; program tidak membukanya otomatis.

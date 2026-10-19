@@ -38,6 +38,10 @@ Capture hanya memuat halaman awal dan sample bawaan. Tombol, upload file, peruba
 | Tema | `auto` (default), `dark`, `light`, `transparent`; rincian ada di spesifikasi command |
 | Bahasa | Dokumen kerja dalam Bahasa Indonesia; README untuk pengguna GitHub disiapkan dalam Bahasa Inggris dan Bahasa Indonesia |
 | Bahasa pemrograman | Go dipilih sebagai bahasa implementasi |
+| Parser dan TUI | Goldmark dan `tcell/v2` disetujui untuk implementasi setelah evaluasi Ticket 01 |
+| Toolchain minimum | Go 1.25 disetujui; pasangan patch minimum dependency transitif yang diperiksa dicatat di evaluasi stack |
+| Linkify dan browser | URL/email polos dikenali sebagai Linkify; helper `github.com/pkg/browser` disetujui dengan validasi HTTP(S) dan aktivasi eksplisit |
+| Clipboard | Abstraksi yang mengembalikan error; package produksi final belum dipilih |
 | Distribusi | Sasaran: pengguna memasang melalui command terminal dan menjalankan aplikasi tanpa setup developer |
 
 Spesifikasi command dan kontrol TUI yang telah dikonfirmasi tersedia di [command-spec.md](command-spec.md). Kriteria penerimaan dan fixture untuk memeriksa seluruh batas MVP tersedia di [acceptance-criteria.md](acceptance-criteria.md).
@@ -94,7 +98,7 @@ AST (*Abstract Syntax Tree*) adalah struktur data yang mewakili elemen Markdown,
 
 ### Kandidat bahasa pemrograman
 
-Go dipilih sebagai bahasa implementasi. Program dapat dibuild menjadi binary untuk sistem operasi sasaran, sehingga pengguna tidak perlu memasang Go untuk menjalankan binary yang sudah didistribusikan. Go juga memiliki ekosistem untuk aplikasi CLI dan TUI. Library parser Markdown dan library TUI yang akan dipakai belum dipilih. Pilihan bahasa membantu menentukan library dan alur build, tetapi tampilan akhir tetap ditentukan oleh desain TUI, layout terminal, dan parser.
+Go dipilih sebagai bahasa implementasi; minimum toolchain Go 1.25 telah disetujui. Goldmark disetujui sebagai parser Markdown dan `tcell/v2` sebagai framework TUI berdasarkan bukti spike Ticket 01. Program dapat dibuild menjadi binary untuk sistem operasi sasaran, sehingga pengguna tidak perlu memasang Go untuk menjalankan binary yang sudah didistribusikan. Tampilan akhir tetap ditentukan oleh desain TUI, layout terminal, dan parser. Package clipboard produksi final belum dipilih.
 
 ## Risiko teknis dan mitigasi
 
@@ -123,6 +127,12 @@ Urutan implementasi dan gerbang verifikasi dijabarkan di [development-workflow.m
 - Saat output diarahkan ke pipe, tidak ada layar TUI atau ANSI secara default.
 - Parser, layout, dan TUI dapat diuji secara terpisah.
 
+## Evaluasi stack — Ticket 01
+
+Hasil spike, versi yang diperiksa, kandidat parser/TUI/clipboard/browser, hasil corpus, batas keamanan, dependency, trade-off, dan acceptance yang belum terbukti dicatat di [evaluasi stack](stack-evaluation.md).
+
+Ringkasnya: pengguna menyetujui Goldmark + `tcell/v2`, helper `github.com/pkg/browser` dengan validasi HTTP(S) dan aktivasi eksplisit, serta clipboard melalui abstraksi ber-error dengan package final ditunda. Minimum Go 1.24 yang disetujui pada 16 Oktober 2026 diperbarui menjadi Go 1.25 pada 19 Oktober 2026 setelah audit menemukan advisory pada dependency transitif; pasangan perbaikan minimum berhasil diuji di scratch. Go 1.27.2 terpasang. Kedua parser cocok dengan corpus CommonMark 0.31.2 pada konfigurasi pembanding. Goldmark GFM bundle diuji pada 648 contoh GFM spec 0.29 dan menghasilkan 14 exact-output mismatch; setelah normalisasi semantik yang tercatat, hasilnya 0 semantic mismatch. Pengguna menyetujui Linkify URL/email polos sebagai ekstensi produk. Renderer HTML default Goldmark menghilangkan raw HTML sehingga aplikasi tetap memerlukan renderer AST aman. Kedua kandidat TUI berhasil cross-compile untuk Windows/macOS/Linux amd64; test simulasi tcell terbatas lulus. Pemeriksaan terakhir prototipe seleksi di Windows dengan Go 1.27.2 menjalankan `go test .` dan lulus (`ok stackspike`), memakai event mouse simulasi serta clipboard tiruan; ini bukan bukti drag selection di terminal nyata atau keberhasilan clipboard OS. Belum ada smoke test terminal nyata, clipboard/browser OS, atau restore terminal. Ticket 01 telah ditutup setelah risiko yang dapat mengubah pilihan stack memiliki bukti dan persetujuan; Ticket 02 berstatus ready-for-agent dan belum dimulai. Tidak ada dependency produksi atau `go.mod` yang ditambahkan ke root repo.
+
 ## Kesimpulan
 
-Tujuan produk berubah dari renderer teks langsung menjadi TUI pembaca read-only. Keputusan ini tidak mengubah inti parsing Markdown, tetapi menambah pengelolaan keyboard, scroll, ukuran terminal, zoom layout, serta pemulihan state terminal. TUI dapat dibuat tanpa menanam browser. MVP tetap berfokus pada CommonMark/GFM, pembacaan yang nyaman, tabel responsif, dan perilaku aman terhadap isi file.
+Tujuan produk berubah dari renderer teks langsung menjadi TUI pembaca read-only. Keputusan ini tidak mengubah inti parsing Markdown, tetapi menambah pengelolaan keyboard, scroll, ukuran terminal, zoom layout, serta pemulihan state terminal. TUI dapat dibuat tanpa menanam browser. MVP tetap berfokus pada CommonMark/GFM, pembacaan yang nyaman, tabel responsif, dan perilaku aman terhadap isi file. Ticket 01 telah memenuhi gerbang Fase 1 dan ditutup dengan stack yang disetujui. Acceptance aplikasi yang belum diuji—termasuk renderer aman, interaksi TUI nyata, clipboard OS, browser OS, dan smoke test lintas platform—tetap terbuka pada ticket implementasi/verifikasi terkait dan tidak dinyatakan lulus berdasarkan spike.

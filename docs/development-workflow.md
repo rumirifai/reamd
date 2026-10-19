@@ -32,7 +32,7 @@ Checklist tugas agent per fase tersedia di [docs/tickets/README.md](tickets/READ
 | Fase | Fokus | Gerbang selesai |
 |---|---|---|
 | 0 | Persiapan tugas dan ruang lingkup | Acceptance criteria yang dikerjakan dan keputusan terbuka teridentifikasi |
-| 1 | Spike teknis dan pemilihan library | Parser, TUI, clipboard, dan pembukaan link memenuhi kebutuhan kritis |
+| 1 | Spike teknis dan pemilihan library | Risiko kelayakan yang berpotensi mengubah pilihan stack memiliki bukti spike yang memadai; acceptance aplikasi dicatat untuk fase implementasi/verifikasi |
 | 2 | Fondasi Go dan CLI | Aplikasi dapat dibangun, menampilkan bantuan/error, dan membaca satu file |
 | 3 | Vertical slice TUI | File tampil di terminal interaktif, bisa digulir, keluar dengan aman, dan punya fallback pipe |
 | 4 | Parsing dan layout Markdown | Fixture dan conformance test CommonMark/GFM lulus |
@@ -54,22 +54,21 @@ Untuk setiap tugas coding:
 
 ## Fase 1: spike teknis dan pemilihan library
 
-Spike adalah percobaan kecil untuk menguji risiko sebelum memilih dependency atau membangun arsitektur besar. Go sudah dipilih, tetapi parser, TUI, clipboard, dan integrasi browser belum diputuskan.
+Spike adalah percobaan kecil untuk menguji risiko sebelum memilih dependency atau membangun arsitektur besar. Pilihan awal Go, Goldmark, dan tcell sudah disetujui; clipboard produksi belum dipilih.
 
-Bandingkan kandidat dan uji hal berikut:
+Uji risiko yang dapat mengganti pilihan stack atau membuat pendekatan yang disetujui tidak layak, misalnya:
 
-- **Parser Markdown:** CommonMark + GFM penuh, conformance corpus, link internal, raw HTML yang dapat ditampilkan sebagai teks aman, dan kemampuan menjaga isi yang tidak punya renderer khusus.
-- **Framework TUI:** key handling, resize, mouse wheel, scrollbar, drag selection, pemulihan terminal, dan dukungan Windows/macOS/Linux.
-- **Clipboard:** copy teks hasil render tanpa ANSI pada ketiga sistem operasi, termasuk perilaku ketika clipboard tidak tersedia.
-- **Browser default:** hanya buka HTTP/HTTPS setelah aksi pengguna; argumen URL tidak boleh dieksekusi sebagai perintah shell.
-- **Layout terminal:** lebar Unicode, wrapping list/code, tabel stacked, tema, dan output non-interaktif.
-- **Kesehatan dependency:** pemeliharaan, lisensi, dependency transitif, dan kecocokan versi Go.
+- **Parser:** kecocokan CommonMark/GFM yang dituju dan kemampuan mengakses AST untuk renderer terpisah.
+- **Framework TUI:** kemampuan menerima event input yang diperlukan, termasuk mouse drag untuk seleksi, dan kompatibilitas build yang relevan.
+- **Clipboard:** apakah teks pilihan dapat diberikan sebagai plain text melalui abstraksi; jangan menyamakan permintaan clipboard terminal dengan konfirmasi clipboard OS.
+- **Browser default:** pemanggilan terpisah dari shell, validasi HTTP(S), dan gerbang aktivasi pengguna.
+- **Dependency:** versi Go, lisensi, kerentanan, serta risiko pemeliharaan yang cukup serius untuk mengubah kandidat.
 
-> Jangan memilih library hanya karena populer. Nilai kandidat berdasarkan fixture dan AC yang relevan. Catat pilihan, alasan, keterbatasan, dan versi yang diuji di dokumen terkait sebelum mengikat implementasi ke API library tersebut.
+Spike tidak harus menyelesaikan seluruh acceptance criteria aplikasi. Catat versi, prosedur, hasil nyata, keterbatasan, dan apakah bukti mengubah rekomendasi. Persetujuan kandidat bukan klaim bahwa fitur produk telah lulus.
 
-Agent menyajikan rekomendasi dependency beserta trade-off dalam Bahasa Indonesia dan menunggu persetujuan pengguna sebelum menambahkan dependency produksi.
+Pengujian renderer aplikasi, lifecycle terminal, clipboard OS/fallback, browser OS, smoke test terminal, dan matriks lintas platform dilakukan pada ticket implementasi atau verifikasi yang sesuai, bukan dipersyaratkan sebagai bukti spike sebelum implementasi dimulai.
 
-**Gerbang:** bukti spike menunjukkan kebutuhan kritis bisa dilakukan atau ada keputusan produk yang disepakati untuk mengubah scope. Jangan mulai implementasi luas jika mouse selection, clipboard, atau pemulihan terminal belum terverifikasi.
+**Gerbang:** setiap risiko yang masuk akal dapat mengubah pilihan stack memiliki bukti kelayakan spike yang dapat diperiksa, atau dicatat sebagai blocker dan diputuskan pengguna. Jangan mensyaratkan seluruh `docs/acceptance-criteria.md` selesai di Fase 1. Jangan menandai fitur produk lulus berdasarkan simulasi atau spike.
 
 ## Fase 2: fondasi Go dan CLI
 
