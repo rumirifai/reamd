@@ -27,9 +27,9 @@
 
 ## Development checks
 
-- This repository does not yet contain application code, a Go module, CI configuration, or established build/test commands.
-- Inspect the project manifests and CI before running or documenting build/test commands; do not invent project-specific commands.
-- When implementation is added, update this file with verified commands and keep it concise.
+- Format Go code: `gofmt -w cmd internal`.
+- Verify the repository: `go test ./...`, `go vet ./...`, and `go build ./...`.
+- CI runs build, test, and vet on Windows, macOS, and Linux; its formatting check runs on macOS/Linux.
 
 <!-- antislop:start -->
 ## antislop

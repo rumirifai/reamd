@@ -4,7 +4,7 @@
 
 **Blocked by:** 02, Bangun CLI dan vertical slice TUI.
 
-**Status:** blocked
+**Status:** ready-for-agent
 
 **Acuan:** Fase 4 di `docs/development-workflow.md`; `AC-MD`, `AC-RENDER`; `FX-001`, `FX-002`, dan bagian relevan `FX-006`.
 
