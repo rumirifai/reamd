@@ -32,12 +32,13 @@ type App struct {
 	width  int
 	height int
 	help   bool
+	zoom   int
 }
 
 // New creates a reader for one document. The theme is validated by the CLI and
 // is carried here for the palette work in a later ticket.
 func New(path string, theme cli.Theme, source []string) *App {
-	a := &App{path: path, theme: theme, source: source}
+	a := &App{path: path, theme: theme, source: source, zoom: 100}
 	a.Resize(80, 24)
 	return a
 }
@@ -60,14 +61,67 @@ func (a *App) Resize(width, height int) {
 	if contentHeight < 1 {
 		contentHeight = 1
 	}
-	a.doc = layout.BuildTables(a.source, width)
+	layoutWidth := width * 100 / a.zoom
+	if layoutWidth > width {
+		layoutWidth = width
+	}
+	a.doc = layout.BuildTables(a.source, layoutWidth)
+	if a.zoom < 100 {
+		compact := make([]layout.Line, 0, len(a.doc.Lines))
+		emptySeen := 0
+		for _, line := range a.doc.Lines {
+			if line.Text == "" {
+				emptySeen++
+				if emptySeen%((100-a.zoom)/10+1) != 0 {
+					continue
+				}
+			} else {
+				emptySeen = 0
+			}
+			compact = append(compact, line)
+		}
+		a.doc.Lines = compact
+	}
 	a.view.Resize(contentHeight, len(a.doc.Lines))
+}
+
+// Zoom reports the application layout density. It does not change terminal font size.
+func (a *App) Zoom() int { return a.zoom }
+
+func (a *App) setZoom(zoom int) {
+	if zoom < 70 {
+		zoom = 70
+	}
+	if zoom > 150 {
+		zoom = 150
+	}
+	if zoom == a.zoom {
+		return
+	}
+	oldPercent := a.view.Percent()
+	a.zoom = zoom
+	a.Resize(a.width, a.height)
+	maxOffset := a.view.Total - a.view.Height
+	if maxOffset > 0 {
+		a.view.Offset = maxOffset * oldPercent / 100
+	}
+	a.view.Clamp()
 }
 
 // HandleKey applies one key event. It reports whether the app should exit.
 func (a *App) HandleKey(ev *tcell.EventKey) bool {
 	if ev.Key() == tcell.KeyRune {
+		if ev.Modifiers()&tcell.ModCtrl != 0 && ev.Rune() == '0' {
+			a.setZoom(100)
+			return false
+		}
 		switch ev.Rune() {
+		case '+':
+			a.setZoom(a.zoom + 10)
+			return false
+		case '-':
+			a.setZoom(a.zoom - 10)
+			return false
 		case 'q':
 			return true
 		case '?':
@@ -120,6 +174,7 @@ func (a *App) HandleKey(ev *tcell.EventKey) bool {
 // Draw paints the current frame. It never writes document content as terminal
 // control sequences because the layout has already sanitized it.
 func (a *App) Draw(screen tcell.Screen) {
+	screen.SetStyle(a.baseStyle())
 	screen.Clear()
 	if a.width < MinWidth || a.height < MinHeight {
 		a.drawTooSmall(screen)
@@ -134,18 +189,72 @@ func (a *App) Draw(screen tcell.Screen) {
 	a.drawFooter(screen)
 }
 
-func (a *App) drawDocument(screen tcell.Screen) {
-	if len(a.doc.Lines) == 0 {
-		screen.PutStrStyled(0, 0, "(empty file)", tcell.StyleDefault.Dim(true))
-		return
+func (a *App) baseStyle() tcell.Style {
+	if os.Getenv("NO_COLOR") != "" {
+		return tcell.StyleDefault
 	}
-	for row, line := range a.view.Visible(a.doc.Lines) {
-		screen.PutStrStyled(0, row, line.Text, tcell.StyleDefault)
+	switch a.theme {
+	case cli.ThemeDark:
+		return tcell.StyleDefault.Foreground(tcell.ColorLightGray).Background(tcell.ColorBlack)
+	case cli.ThemeLight:
+		return tcell.StyleDefault.Foreground(tcell.ColorBlack).Background(tcell.ColorWhite)
+	default:
+		return tcell.StyleDefault
 	}
 }
 
+func (a *App) drawDocument(screen tcell.Screen) {
+	if len(a.doc.Lines) == 0 {
+		screen.PutStrStyled(0, 0, "(empty file)", a.baseStyle().Dim(true))
+		return
+	}
+	left := (a.width - a.doc.Width) / 2
+	for row, line := range a.view.Visible(a.doc.Lines) {
+		style := a.styleForLine(line.Text)
+		screen.PutStrStyled(left, row, line.Text, style)
+	}
+}
+
+func (a *App) styleForLine(line string) tcell.Style {
+	style := tcell.StyleDefault
+	if strings.HasPrefix(line, "# ") || strings.HasPrefix(line, "## ") || strings.HasPrefix(line, "### ") {
+		style = style.Bold(true).Underline(a.zoom >= 120)
+	} else if strings.HasPrefix(line, "│ ") || strings.HasPrefix(line, "↪ ") {
+		style = style.Underline(true).Reverse(a.zoom >= 130)
+	} else if strings.HasPrefix(line, "> ") || strings.HasPrefix(line, "- ") || strings.HasPrefix(line, "* ") || strings.HasPrefix(line, "+ ") {
+		style = style.Bold(true)
+	}
+	if _, noColor := os.LookupEnv("NO_COLOR"); noColor {
+		return style
+	}
+	switch a.theme {
+	case cli.ThemeDark:
+		fg := tcell.ColorLightGray
+		bg := tcell.ColorBlack
+		if strings.HasPrefix(line, "#") {
+			fg = tcell.ColorAqua
+		}
+		if strings.HasPrefix(line, "│ ") || strings.HasPrefix(line, "↪ ") {
+			fg = tcell.ColorYellow
+		}
+		style = style.Foreground(fg).Background(bg)
+	case cli.ThemeLight:
+		fg := tcell.ColorBlack
+		bg := tcell.ColorWhite
+		if strings.HasPrefix(line, "#") {
+			fg = tcell.ColorBlue
+		}
+		if strings.HasPrefix(line, "│ ") || strings.HasPrefix(line, "↪ ") {
+			fg = tcell.ColorMaroon
+		}
+		style = style.Foreground(fg).Background(bg)
+	}
+	return style
+}
+
 func (a *App) drawHelp(screen tcell.Screen) {
-	title := tcell.StyleDefault.Bold(true)
+	base := a.baseStyle()
+	title := base.Bold(true)
 	lines := []struct {
 		key  string
 		what string
@@ -153,29 +262,31 @@ func (a *App) drawHelp(screen tcell.Screen) {
 		{"Up / Down, j / k", "Scroll one line"},
 		{"PageUp / PageDown", "Scroll one screen"},
 		{"Home / End", "Jump to start/end"},
+		{"+ / -, Ctrl+0", "Zoom layout, reset to 100%"},
 		{"?", "Close this help"},
 		{"q / Esc", "Quit"},
 	}
 	screen.PutStrStyled(0, 0, "Keys", title)
 	for i, item := range lines {
 		row := i + 2
-		screen.PutStrStyled(2, row, item.key, tcell.StyleDefault.Bold(true))
-		screen.PutStrStyled(23, row, item.what, tcell.StyleDefault)
+		screen.PutStrStyled(2, row, item.key, base.Bold(true))
+		screen.PutStrStyled(23, row, item.what, base)
 	}
 }
 
 func (a *App) drawTooSmall(screen tcell.Screen) {
-	screen.PutStrStyled(0, 0, "Terminal too small", tcell.StyleDefault.Bold(true))
-	screen.PutStrStyled(0, 2, fmt.Sprintf("Need %dx%d", MinWidth, MinHeight), tcell.StyleDefault)
-	screen.PutStrStyled(0, 3, "Resize, q quits", tcell.StyleDefault)
+	base := a.baseStyle()
+	screen.PutStrStyled(0, 0, "Terminal too small", base.Bold(true))
+	screen.PutStrStyled(0, 2, fmt.Sprintf("Need %dx%d", MinWidth, MinHeight), base)
+	screen.PutStrStyled(0, 3, "Resize, q quits", base)
 }
 
 func (a *App) drawFooter(screen tcell.Screen) {
-	right := fmt.Sprintf("? help  q quit  %d%%", a.view.Percent())
+	right := fmt.Sprintf("?help +/- %d%% q quit", a.zoom)
 	if a.help {
-		right = fmt.Sprintf("? close  q quit  %d%%", a.view.Percent())
+		right = fmt.Sprintf("?close +/- %d%% q quit", a.zoom)
 	}
-	screen.PutStrStyled(0, a.height-1, footerText(a.path, right, a.width), tcell.StyleDefault)
+	screen.PutStrStyled(0, a.height-1, footerText(a.path, right, a.width), a.baseStyle())
 }
 
 // footerText places the path on the left and the key hints on the right,
