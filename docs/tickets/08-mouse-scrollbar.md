@@ -4,14 +4,16 @@
 
 **Blocked by:** 02, Bangun CLI dan vertical slice TUI.
 
-**Status:** blocked
+**Status:** in-progress
 
 **Acuan:** Fase 5 di `docs/development-workflow.md`; `AC-MOUSE` dan `AC-PLATFORM`.
 
-- [ ] Scroll wheel menggulir dokumen secara konsisten.
-- [ ] Klik track scrollbar memindahkan posisi dokumen ke lokasi yang sesuai.
-- [ ] Thumb scrollbar mencerminkan posisi dokumen dan dapat di-drag.
-- [ ] Fitur mouse aktif hanya ketika terminal melaporkan kapabilitas yang sesuai.
-- [ ] Navigasi keyboard tetap dapat mengakses seluruh fungsi utama saat mouse tidak tersedia.
+- [x] Scroll wheel menggulir dokumen secara konsisten.
+- [x] Klik track scrollbar memindahkan posisi dokumen ke lokasi yang sesuai.
+- [x] Thumb scrollbar mencerminkan posisi dokumen dan dapat di-drag.
+- [x] Fitur mouse aktif hanya ketika terminal melaporkan kapabilitas yang sesuai.
+- [x] Navigasi keyboard tetap dapat mengakses seluruh fungsi utama saat mouse tidak tersedia.
 
-**Verifikasi:** smoke test manual pada terminal dengan dukungan mouse dan pemeriksaan fallback keyboard pada terminal tanpa dukungan tersebut.
+**Bukti otomatis:** test mencakup wheel naik/turun, klik track di kedua ujung, posisi dan ukuran thumb, drag thumb, penolakan event mouse saat kapabilitas tidak tersedia, fallback navigasi keyboard, serta aktivasi link dengan mouse pada screen simulasi yang melaporkan dukungan mouse.
+
+**Smoke test manual:** belum dijalankan. Runner session ini tidak menyediakan terminal desktop interaktif yang dapat menerima input wheel/drag manual; OS dan terminal nyata belum dapat dicatat sebagai hasil pengamatan.

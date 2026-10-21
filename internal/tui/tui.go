@@ -28,18 +28,21 @@ const (
 
 // App is the screen-independent reader state.
 type App struct {
-	path    string
-	theme   cli.Theme
-	source  []string
-	doc     *layout.Layout
-	view    layout.Viewport
-	width   int
-	height  int
-	help    bool
-	zoom    int
-	focused int
-	message string
-	opener  func(string) error
+	path              string
+	theme             cli.Theme
+	source            []string
+	doc               *layout.Layout
+	view              layout.Viewport
+	width             int
+	height            int
+	help              bool
+	zoom              int
+	focused           int
+	message           string
+	opener            func(string) error
+	mouseEnabled      bool
+	draggingScrollbar bool
+	dragGrab          int
 }
 
 // New creates a reader for one document. The theme is validated by the CLI and
@@ -109,6 +112,30 @@ func (a *App) Resize(width, height int) {
 		a.doc.Lines = compact
 	}
 	a.view.Resize(contentHeight, len(a.doc.Lines))
+	if a.mouseEnabled && len(a.doc.Lines) > contentHeight {
+		layoutWidth = (width - 1) * 100 / a.zoom
+		if layoutWidth < 1 {
+			layoutWidth = 1
+		}
+		a.doc = layout.BuildTables(a.source, layoutWidth)
+		if a.zoom < 100 {
+			compact := make([]layout.Line, 0, len(a.doc.Lines))
+			emptySeen := 0
+			for _, line := range a.doc.Lines {
+				if line.Text == "" {
+					emptySeen++
+					if emptySeen%((100-a.zoom)/10+1) != 0 {
+						continue
+					}
+				} else {
+					emptySeen = 0
+				}
+				compact = append(compact, line)
+			}
+			a.doc.Lines = compact
+		}
+		a.view.Resize(contentHeight, len(a.doc.Lines))
+	}
 }
 
 // Zoom reports the application layout density. It does not change terminal font size.
@@ -263,6 +290,7 @@ func (a *App) drawDocument(screen tcell.Screen) {
 			}
 		}
 	}
+	a.drawScrollbar(screen)
 	if a.message != "" {
 		screen.PutStrStyled(0, a.height-2, truncate(a.message, a.width), a.baseStyle().Bold(true))
 	}
@@ -340,10 +368,52 @@ func (a *App) activate(target string) {
 }
 
 func (a *App) HandleMouse(ev *tcell.EventMouse) {
-	if ev.Buttons()&tcell.Button1 == 0 || a.help {
+	if !a.mouseEnabled {
+		return
+	}
+	if a.help {
+		a.draggingScrollbar = false
 		return
 	}
 	x, y := ev.Position()
+	buttons := ev.Buttons()
+	if buttons&tcell.WheelUp != 0 {
+		a.view.ScrollLines(-3)
+		return
+	}
+	if buttons&tcell.WheelDown != 0 {
+		a.view.ScrollLines(3)
+		return
+	}
+	if buttons&tcell.Button1 == 0 {
+		a.draggingScrollbar = false
+		return
+	}
+	trackHeight := a.height - 1
+	if x == a.width-1 && len(a.doc.Lines) > a.view.Height && y >= 0 && y < trackHeight {
+		thumbStart, thumbSize := a.view.ScrollbarThumb(trackHeight)
+		if a.draggingScrollbar {
+			a.view.ScrollToTrack(y-a.dragGrab+thumbSize/2, trackHeight)
+			return
+		}
+		if y >= thumbStart && y < thumbStart+thumbSize {
+			if !a.draggingScrollbar {
+				a.dragGrab = y - thumbStart
+			}
+			a.draggingScrollbar = true
+			a.view.ScrollToTrack(y-a.dragGrab+thumbSize/2, trackHeight)
+		} else {
+			a.draggingScrollbar = true
+			a.dragGrab = thumbSize / 2
+			a.view.ScrollToTrack(y, trackHeight)
+		}
+		return
+	}
+	if a.draggingScrollbar {
+		_, thumbSize := a.view.ScrollbarThumb(trackHeight)
+		a.view.ScrollToTrack(y-a.dragGrab+thumbSize/2, trackHeight)
+		return
+	}
 	if y < 0 || y >= a.height-1 {
 		return
 	}
@@ -357,6 +427,22 @@ func (a *App) HandleMouse(ev *tcell.EventMouse) {
 			a.activate(link.Target)
 			return
 		}
+	}
+}
+
+func (a *App) drawScrollbar(screen tcell.Screen) {
+	trackHeight := a.height - 1
+	if !a.mouseEnabled || trackHeight < 1 || len(a.doc.Lines) <= a.view.Height {
+		return
+	}
+	start, size := a.view.ScrollbarThumb(trackHeight)
+	style := a.baseStyle().Dim(true)
+	for y := 0; y < trackHeight; y++ {
+		glyph := '│'
+		if y >= start && y < start+size {
+			glyph = '█'
+		}
+		screen.SetContent(a.width-1, y, glyph, nil, style)
 	}
 }
 func (a *App) jumpAnchor(anchor string) {
@@ -562,7 +648,7 @@ func runInitialized(screen tcell.Screen, path string, theme cli.Theme, source []
 
 func runInitializedWithOpener(screen tcell.Screen, path string, theme cli.Theme, source []string, handleSignals bool, opener func(string) error) error {
 	return withRestore(screen, func() error {
-		screen.EnableMouse()
+		mouseEnabled := enableMouse(screen)
 		if handleSignals {
 			stop := make(chan struct{})
 			defer close(stop)
@@ -581,6 +667,7 @@ func runInitializedWithOpener(screen tcell.Screen, path string, theme cli.Theme,
 		}
 
 		app := NewWithOpener(path, theme, source, opener)
+		app.mouseEnabled = mouseEnabled
 		app.Resize(screen.Size())
 		app.Draw(screen)
 		screen.Show()
@@ -606,6 +693,14 @@ func runInitializedWithOpener(screen tcell.Screen, path string, theme cli.Theme,
 			screen.Show()
 		}
 	})
+}
+
+func enableMouse(screen tcell.Screen) bool {
+	if !screen.HasMouse() {
+		return false
+	}
+	screen.EnableMouse(tcell.MouseDragEvents)
+	return true
 }
 
 // withRestore always restores the terminal, including when fn panics, then

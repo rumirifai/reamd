@@ -23,7 +23,7 @@ reamd --version
 
 With no arguments, `reamd` shows help and usage examples and exits with code 0. It accepts one file path per run and does not read from stdin. In an interactive terminal it opens a read-only TUI; when output is redirected or piped, it prints plain text without ANSI styling.
 
-Current keys: `Up`/`Down` and `j`/`k` scroll one line, `PageUp`/`PageDown` scroll one screen, `Home`/`End` jump to the start or end, `Tab`/`Shift+Tab` focus links, `Enter` activates a focused link, `?` opens help, and `q` or `Esc` quits. Click a link to activate it on a mouse-capable terminal. HTTP(S) links open in the default browser only after activation; anchors jump to headings. Terminals smaller than 40 columns by 10 rows show a short resize message.
+Current keys: `Up`/`Down` and `j`/`k` scroll one line, `PageUp`/`PageDown` scroll one screen, `Home`/`End` jump to the start or end, `Tab`/`Shift+Tab` focus links, `Enter` activates a focused link, `?` opens help, and `q` or `Esc` quits. On mouse-capable terminals, the wheel scrolls and the scrollbar can be clicked or dragged; clicking a link activates it. HTTP(S) links open in the default browser only after activation; anchors jump to headings. Terminals smaller than 40 columns by 10 rows show a short resize message.
 
 ## Current status
 
@@ -96,7 +96,7 @@ reamd --version
 
 Jika dijalankan tanpa argumen, `reamd` menampilkan bantuan dan contoh penggunaan lalu keluar dengan kode 0. MVP menerima satu path file per sesi dan belum membaca stdin. Di terminal interaktif, aplikasi membuka TUI read-only; jika output dialihkan atau di-pipe, aplikasi mencetak teks biasa tanpa ANSI.
 
-Tombol yang tersedia saat ini: `Up`/`Down` dan `j`/`k` menggulir satu baris, `PageUp`/`PageDown` menggulir satu layar, `Home`/`End` menuju awal atau akhir, `Tab`/`Shift+Tab` memfokuskan link, `Enter` mengaktifkan link terpilih, `?` membuka bantuan, dan `q` atau `Esc` keluar. Klik mengaktifkan link pada terminal dengan dukungan mouse. Link HTTP(S) membuka browser default hanya setelah aktivasi; anchor melompat ke heading. Terminal di bawah 40 kolom x 10 baris menampilkan pesan untuk memperbesar terminal.
+Tombol yang tersedia saat ini: `Up`/`Down` dan `j`/`k` menggulir satu baris, `PageUp`/`PageDown` menggulir satu layar, `Home`/`End` menuju awal atau akhir, `Tab`/`Shift+Tab` memfokuskan link, `Enter` mengaktifkan link terpilih, `?` membuka bantuan, dan `q` atau `Esc` keluar. Pada terminal dengan dukungan mouse, wheel menggulir dan scrollbar dapat diklik atau di-drag; klik link mengaktifkannya. Link HTTP(S) membuka browser default hanya setelah aktivasi; anchor melompat ke heading. Terminal di bawah 40 kolom x 10 baris menampilkan pesan untuk memperbesar terminal.
 
 ## Status saat ini
 

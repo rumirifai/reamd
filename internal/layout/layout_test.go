@@ -148,6 +148,33 @@ func TestViewportPercent(t *testing.T) {
 	}
 }
 
+func TestViewportScrollbarThumbTracksViewportAndClickPosition(t *testing.T) {
+	v := Viewport{}
+	v.Resize(10, 100)
+	start, size := v.ScrollbarThumb(20)
+	if start != 0 || size != 2 {
+		t.Fatalf("top thumb = (%d,%d), want (0,2)", start, size)
+	}
+	v.ScrollLines(45)
+	start, size = v.ScrollbarThumb(20)
+	if start < 8 || start > 9 || size != 2 {
+		t.Fatalf("middle thumb = (%d,%d), want near (9,2)", start, size)
+	}
+	v.End()
+	start, _ = v.ScrollbarThumb(20)
+	if start != 18 {
+		t.Fatalf("end thumb start = %d, want 18", start)
+	}
+	v.ScrollToTrack(0, 20)
+	if v.Offset > 5 {
+		t.Fatalf("track click at top offset = %d, want near top", v.Offset)
+	}
+	v.ScrollToTrack(19, 20)
+	if v.Offset < 85 {
+		t.Fatalf("track click at bottom offset = %d, want near end", v.Offset)
+	}
+}
+
 func texts(lines []Line) []string {
 	out := make([]string, len(lines))
 	for i, line := range lines {

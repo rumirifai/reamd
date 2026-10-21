@@ -446,3 +446,54 @@ func (v *Viewport) Percent() int {
 	}
 	return p
 }
+
+// ScrollbarThumb maps the viewport onto a track and returns the thumb start
+// and size in track cells. A non-scrollable document fills the track.
+func (v Viewport) ScrollbarThumb(trackHeight int) (start, size int) {
+	if trackHeight < 1 {
+		return 0, 0
+	}
+	if v.Total <= 0 || v.Total <= v.Height || v.Height <= 0 {
+		return 0, trackHeight
+	}
+	size = trackHeight * v.Height / v.Total
+	if size < 1 {
+		size = 1
+	}
+	if size > trackHeight {
+		size = trackHeight
+	}
+	maxOffset := v.Total - v.Height
+	maxStart := trackHeight - size
+	start = v.Offset * maxStart / maxOffset
+	return start, size
+}
+
+// ScrollToTrack maps a track cell to the corresponding document offset.
+func (v *Viewport) ScrollToTrack(position, trackHeight int) {
+	if trackHeight < 1 || v.Total <= v.Height || v.Height <= 0 {
+		v.Offset = 0
+		return
+	}
+	if position < 0 {
+		position = 0
+	}
+	if position >= trackHeight {
+		position = trackHeight - 1
+	}
+	_, size := v.ScrollbarThumb(trackHeight)
+	maxStart := trackHeight - size
+	if maxStart <= 0 {
+		v.Offset = 0
+		return
+	}
+	thumbStart := position - size/2
+	if thumbStart < 0 {
+		thumbStart = 0
+	}
+	if thumbStart > maxStart {
+		thumbStart = maxStart
+	}
+	v.Offset = thumbStart * (v.Total - v.Height) / maxStart
+	v.Clamp()
+}

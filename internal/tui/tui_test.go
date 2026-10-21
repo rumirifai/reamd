@@ -239,13 +239,14 @@ func TestLinkKeyboardAnchorProtocolGateAndOpenerFailure(t *testing.T) {
 func TestSimulatedMouseActivatesOnlyClickedLink(t *testing.T) {
 	var calls []string
 	source := []string{"\x1chttps://example.com/page\x1cOpen\x1c (https://example.com/page)"}
-	screen := initializedScreen(t, 60, 10)
+	baseScreen := initializedScreen(t, 60, 10)
+	screen := &mouseCapabilityScreen{Screen: baseScreen, supported: true}
 	done := make(chan error, 1)
 	go func() {
 		done <- runInitializedWithOpener(screen, "links.md", cli.ThemeAuto, source, false, func(url string) error { calls = append(calls, url); return nil })
 	}()
-	screen.InjectMouse(1, 0, tcell.Button1, tcell.ModNone)
-	screen.InjectKey(tcell.KeyRune, 'q', tcell.ModNone)
+	baseScreen.InjectMouse(1, 0, tcell.Button1, tcell.ModNone)
+	baseScreen.InjectKey(tcell.KeyRune, 'q', tcell.ModNone)
 	select {
 	case err := <-done:
 		if err != nil {
@@ -257,6 +258,89 @@ func TestSimulatedMouseActivatesOnlyClickedLink(t *testing.T) {
 	if len(calls) != 1 || calls[0] != "https://example.com/page" {
 		t.Fatalf("mouse opener calls=%v", calls)
 	}
+	if !screen.enabled {
+		t.Fatal("mouse-capable screen was not enabled for mouse events")
+	}
+}
+
+func TestMouseWheelTrackAndThumbDrag(t *testing.T) {
+	app := New("doc.md", cli.ThemeAuto, lineRange(100))
+	app.Resize(40, 10)
+	app.mouseEnabled = true
+	app.HandleMouse(tcell.NewEventMouse(5, 0, tcell.WheelDown, tcell.ModNone))
+	if app.view.Offset != 3 {
+		t.Fatalf("offset after wheel down = %d, want 3", app.view.Offset)
+	}
+	app.HandleMouse(tcell.NewEventMouse(5, 0, tcell.WheelUp, tcell.ModNone))
+	if app.view.Offset != 0 {
+		t.Fatalf("offset after wheel up = %d, want 0", app.view.Offset)
+	}
+	app.HandleMouse(tcell.NewEventMouse(39, 8, tcell.Button1, tcell.ModNone))
+	if app.view.Offset < 85 {
+		t.Fatalf("offset after bottom track click = %d, want near end", app.view.Offset)
+	}
+	app.view.Home()
+	track := app.height - 1
+	start, _ := app.view.ScrollbarThumb(track)
+	app.HandleMouse(tcell.NewEventMouse(39, start, tcell.Button1, tcell.ModNone))
+	app.HandleMouse(tcell.NewEventMouse(39, start+5, tcell.Button1, tcell.ModNone))
+	if app.view.Offset <= 0 {
+		t.Fatalf("offset after thumb drag = %d, want positive", app.view.Offset)
+	}
+	app.HandleMouse(tcell.NewEventMouse(39, start+5, tcell.ButtonNone, tcell.ModNone))
+	if app.draggingScrollbar {
+		t.Fatal("thumb drag remained active after button release")
+	}
+}
+
+func TestMouseEventsIgnoredWithoutCapabilityAndKeyboardRemainsAvailable(t *testing.T) {
+	app := New("doc.md", cli.ThemeAuto, lineRange(30))
+	app.Resize(40, 10)
+	app.HandleMouse(tcell.NewEventMouse(0, 0, tcell.WheelDown, tcell.ModNone))
+	if app.view.Offset != 0 {
+		t.Fatalf("mouse changed offset when disabled: %d", app.view.Offset)
+	}
+	app.HandleKey(key(tcell.KeyDown, 0))
+	if app.view.Offset != 1 {
+		t.Fatalf("keyboard fallback offset = %d, want 1", app.view.Offset)
+	}
+	screen := &mouseCapabilityScreen{Screen: newScreen(t, 40, 10), supported: false}
+	if enableMouse(screen) || screen.enabled {
+		t.Fatal("mouse input enabled without reported terminal support")
+	}
+}
+
+func TestDrawScrollbarThumbAtViewportPosition(t *testing.T) {
+	app := New("doc.md", cli.ThemeAuto, lineRange(100))
+	app.Resize(40, 10)
+	app.mouseEnabled = true
+	app.view.ScrollLines(45)
+	screen := newScreen(t, 40, 10)
+	app.Draw(screen)
+	screen.Show()
+	start, size := app.view.ScrollbarThumb(app.height - 1)
+	for y := 0; y < app.height-1; y++ {
+		main, _, _, _ := screen.GetContent(app.width-1, y)
+		want := '│'
+		if y >= start && y < start+size {
+			want = '█'
+		}
+		if main != want {
+			t.Errorf("scrollbar cell (%d,%d) = %q, want %q", app.width-1, y, main, want)
+		}
+	}
+}
+
+type mouseCapabilityScreen struct {
+	tcell.Screen
+	supported bool
+	enabled   bool
+}
+
+func (s *mouseCapabilityScreen) HasMouse() bool { return s.supported }
+func (s *mouseCapabilityScreen) EnableMouse(flags ...tcell.MouseFlags) {
+	s.enabled = true
+	s.Screen.EnableMouse(flags...)
 }
 
 func TestFocusedLinkHasVisibleReverseVideoIndicator(t *testing.T) {
