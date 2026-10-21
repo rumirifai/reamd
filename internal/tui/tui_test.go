@@ -1,12 +1,17 @@
 package tui
 
 import (
+	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 
 	"github.com/rumirifai/reamd/internal/cli"
+	"github.com/rumirifai/reamd/internal/document"
 	"github.com/rumirifai/reamd/internal/layout"
 )
 
@@ -180,6 +185,122 @@ func TestZoomBoundsStepResetAndReflow(t *testing.T) {
 	app.HandleKey(runeKey('+'))
 	if app.Zoom() != 150 {
 		t.Fatalf("zoom passed upper bound: %d", app.Zoom())
+	}
+}
+
+func TestLinkKeyboardAnchorProtocolGateAndOpenerFailure(t *testing.T) {
+	source := []string{"## First!", "\x1chttps://example.com\x1cWeb\x1c (https://example.com)", "\x1c#second\x1cJump\x1c (#second)", "\x1cmailto:user@example.com\x1cMail\x1c (mailto:user@example.com)", "\x1c#missing\x1cMissing\x1c (#missing)", "## Second", "after 1", "after 2", "after 3", "after 4", "after 5", "after 6", "after 7", "after 8", "after 9", "after 10"}
+	calls := []string{}
+	app := NewWithOpener("links.md", cli.ThemeAuto, source, func(url string) error { calls = append(calls, url); return errors.New("browser unavailable") })
+	app.Resize(60, 10)
+	if len(calls) != 0 {
+		t.Fatal("constructor activated a link")
+	}
+	app.HandleKey(key(tcell.KeyTab, 0))
+	if app.focused != 0 || len(calls) != 0 {
+		t.Fatalf("Tab focus=%d opener calls=%v", app.focused, calls)
+	}
+	app.HandleKey(key(tcell.KeyBacktab, 0))
+	if app.focused != 3 {
+		t.Fatalf("Shift+Tab focus=%d, want previous last link", app.focused)
+	}
+	app.HandleKey(key(tcell.KeyTab, 0))
+	app.HandleKey(key(tcell.KeyEnter, 0))
+	if len(calls) != 1 || calls[0] != "https://example.com" {
+		t.Fatalf("web activation calls=%v", calls)
+	}
+	if !strings.Contains(app.message, "Cannot open browser") {
+		t.Fatalf("missing opener error: %q", app.message)
+	}
+	errorScreen := newScreen(t, 60, 10)
+	app.Draw(errorScreen)
+	errorScreen.Show()
+	if !screenContains(errorScreen, "Cannot open browser") {
+		cells, width, height := errorScreen.GetContents()
+		t.Fatalf("browser failure message was not visible on screen (cells=%d, size=%dx%d, message=%q)", len(cells), width, height, app.message)
+	}
+	app.HandleKey(key(tcell.KeyTab, 0))
+	app.HandleKey(key(tcell.KeyEnter, 0))
+	if app.view.Offset != 5 {
+		t.Fatalf("anchor offset=%d, want heading row 5", app.view.Offset)
+	}
+	app.HandleKey(key(tcell.KeyTab, 0))
+	app.HandleKey(key(tcell.KeyEnter, 0))
+	if len(calls) != 1 {
+		t.Fatalf("non-HTTP protocol reached opener: %v", calls)
+	}
+	app.HandleKey(key(tcell.KeyTab, 0))
+	app.HandleKey(key(tcell.KeyEnter, 0))
+	if !strings.Contains(app.message, "Anchor not found") {
+		t.Fatalf("missing anchor error: %q", app.message)
+	}
+}
+
+func TestSimulatedMouseActivatesOnlyClickedLink(t *testing.T) {
+	var calls []string
+	source := []string{"\x1chttps://example.com/page\x1cOpen\x1c (https://example.com/page)"}
+	screen := initializedScreen(t, 60, 10)
+	done := make(chan error, 1)
+	go func() {
+		done <- runInitializedWithOpener(screen, "links.md", cli.ThemeAuto, source, false, func(url string) error { calls = append(calls, url); return nil })
+	}()
+	screen.InjectMouse(1, 0, tcell.Button1, tcell.ModNone)
+	screen.InjectKey(tcell.KeyRune, 'q', tcell.ModNone)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("TUI did not exit")
+	}
+	if len(calls) != 1 || calls[0] != "https://example.com/page" {
+		t.Fatalf("mouse opener calls=%v", calls)
+	}
+}
+
+func TestFocusedLinkHasVisibleReverseVideoIndicator(t *testing.T) {
+	app := NewWithOpener("links.md", cli.ThemeAuto, []string{"\x1chttps://example.com\x1cOpen\x1c (https://example.com)"}, func(string) error { return nil })
+	app.Resize(60, 10)
+	app.HandleKey(key(tcell.KeyTab, 0))
+	screen := newScreen(t, 60, 10)
+	app.Draw(screen)
+	screen.Show()
+	cells, _, _ := screen.GetContents()
+	_, _, attrs := cells[0].Style.Decompose()
+	if attrs&tcell.AttrReverse == 0 {
+		t.Fatal("focused link has no visible focus style")
+	}
+}
+
+func TestFX004AnchorsNavigateAndMissingTargetReportsMessage(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "document", "testdata", "fx-004.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := document.New("fx-004.md", string(data))
+	app := NewWithOpener(doc.Path, cli.ThemeAuto, doc.Lines, func(string) error { t.Fatal("fixture anchor reached browser opener"); return nil })
+	app.Resize(100, 5)
+	want := map[string]string{"#cara-pakai": "## Cara Pakai!", "#foo-bar": "## Foo: Bar?", "#bagian-sama-1": "## Bagian sama"}
+	for i, item := range app.links() {
+		if heading, ok := want[item.link.Target]; ok {
+			app.focused = i
+			app.activateFocused()
+			if !strings.HasPrefix(app.doc.Lines[app.view.Offset].Text, heading) {
+				t.Errorf("%s landed at %q, want heading %q", item.link.Target, app.doc.Lines[app.view.Offset].Text, heading)
+			}
+			delete(want, item.link.Target)
+		}
+		if item.link.Target == "#tidak-ada" {
+			app.focused = i
+			app.activateFocused()
+			if !strings.Contains(app.message, "Anchor not found") {
+				t.Errorf("missing target message = %q", app.message)
+			}
+		}
+	}
+	if len(want) != 0 {
+		t.Errorf("FX-004 anchors not tested: %v", want)
 	}
 }
 

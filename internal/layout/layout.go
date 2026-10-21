@@ -14,6 +14,13 @@ import (
 type Line struct {
 	Text  string
 	Width int
+	Links []Link
+}
+
+// Link marks the visible terminal cells belonging to a document link.
+type Link struct {
+	Start, End int
+	Target     string
 }
 
 // Layout is the wrapped document at one terminal width.
@@ -175,7 +182,8 @@ func takeWidth(s string, width int) (string, string) {
 }
 
 func appendWrapped(out *Layout, raw string, width int) {
-	text := Sanitize(raw)
+	text, targets := stripLinkMarkers(raw)
+	text = Sanitize(text)
 	prefix := continuationPrefix(text)
 	parts := wrap(text, width)
 	if prefix != "" {
@@ -189,9 +197,72 @@ func appendWrapped(out *Layout, raw string, width int) {
 			parts[i] = continuation + strings.TrimLeft(parts[i], " ")
 		}
 	}
+	base := len(out.Lines)
 	for _, part := range parts {
 		out.Lines = append(out.Lines, Line{Text: part, Width: uniseg.StringWidth(part)})
 	}
+	for _, target := range targets {
+		before := text[:target.start]
+		prefixWidth := uniseg.StringWidth(before)
+		row, col := 0, prefixWidth
+		for col >= width && row+1 < len(parts) {
+			row++
+			col -= width
+		}
+		remaining := uniseg.StringWidth(text[target.start:target.end])
+		for remaining > 0 && row < len(parts) {
+			available := uniseg.StringWidth(parts[row]) - col
+			if available < 0 {
+				available = 0
+			}
+			count := remaining
+			if count > available {
+				count = available
+			}
+			if count > 0 {
+				out.Lines[base+row].Links = append(out.Lines[base+row].Links, Link{Start: col, End: col + count, Target: target.url})
+			}
+			remaining -= count
+			row++
+			col = 0
+		}
+	}
+}
+
+type linkTarget struct {
+	start, end int
+	url        string
+}
+
+func stripLinkMarkers(raw string) (string, []linkTarget) {
+	var out strings.Builder
+	var links []linkTarget
+	for i := 0; i < len(raw); {
+		if raw[i] != '\x1c' {
+			out.WriteByte(raw[i])
+			i++
+			continue
+		}
+		endTarget := strings.IndexByte(raw[i+1:], '\x1c')
+		if endTarget < 0 {
+			out.WriteByte(raw[i])
+			i++
+			continue
+		}
+		endTarget += i + 1
+		endLabel := strings.IndexByte(raw[endTarget+1:], '\x1c')
+		if endLabel < 0 {
+			out.WriteByte(raw[i])
+			i++
+			continue
+		}
+		endLabel += endTarget + 1
+		start := out.Len()
+		out.WriteString(raw[endTarget+1 : endLabel])
+		links = append(links, linkTarget{start, out.Len(), raw[i+1 : endTarget]})
+		i = endLabel + 1
+	}
+	return out.String(), links
 }
 
 func continuationPrefix(s string) string {

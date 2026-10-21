@@ -39,11 +39,11 @@ func New(path, content string) *Document {
 }
 
 // escapeLayoutMarkers prevents document bytes reserved for internal layout
-// records from being mistaken for renderer metadata.
+// and link records from being mistaken for renderer metadata.
 func escapeLayoutMarkers(content string) string {
 	var b strings.Builder
 	for _, r := range content {
-		if r >= 0x1d && r <= 0x1f {
+		if r >= 0x1c && r <= 0x1f {
 			b.WriteByte('^')
 			b.WriteRune(r + 0x40)
 			continue
@@ -180,7 +180,11 @@ func renderInline(n ast.Node, src []byte, b *strings.Builder) {
 			b.Write(x.Text(src))
 			b.WriteByte('`')
 		case *ast.Link:
+			b.WriteByte('\x1c')
+			b.Write(x.Destination)
+			b.WriteByte('\x1c')
 			renderInline(x, src, b)
+			b.WriteByte('\x1c')
 			if len(x.Destination) > 0 {
 				b.WriteString(" (")
 				b.Write(x.Destination)
@@ -211,7 +215,15 @@ func renderInline(n ast.Node, src []byte, b *strings.Builder) {
 			renderInline(x, src, b)
 			b.WriteString("~~")
 		case *ast.AutoLink:
-			b.Write(x.Label(src))
+			if x.AutoLinkType == ast.AutoLinkURL {
+				b.WriteByte('\x1c')
+				b.Write(x.URL(src))
+				b.WriteByte('\x1c')
+				b.Write(x.Label(src))
+				b.WriteByte('\x1c')
+			} else {
+				b.Write(x.Label(src))
+			}
 		case *extast.TaskCheckBox:
 			if x.IsChecked {
 				b.WriteString("[x] ")

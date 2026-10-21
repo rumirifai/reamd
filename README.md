@@ -3,7 +3,7 @@
 **A read-only Markdown reader for your terminal.** `reamd` opens one document in the current terminal, lets you scroll through it, and returns you to the shell when you quit.
 
 > [!NOTE]
-> `reamd` is in early development. Core CommonMark and selected GFM rendering, file loading, scrolling TUI, and plain pipe output work. Themes, link activation, mouse input, and clipboard support are not implemented yet.
+> `reamd` is in early development. Core CommonMark and selected GFM rendering, file loading, scrolling TUI, plain pipe output, and link navigation are implemented. Theme work and clipboard support are not implemented yet.
 
 **Languages:** English | [Bahasa Indonesia](#reamd-bahasa-indonesia)
 
@@ -23,11 +23,11 @@ reamd --version
 
 With no arguments, `reamd` shows help and usage examples and exits with code 0. It accepts one file path per run and does not read from stdin. In an interactive terminal it opens a read-only TUI; when output is redirected or piped, it prints plain text without ANSI styling.
 
-Current keys: `Up`/`Down` and `j`/`k` scroll one line, `PageUp`/`PageDown` scroll one screen, `Home`/`End` jump to the start or end, `?` opens help, and `q` or `Esc` quits. Terminals smaller than 40 columns by 10 rows show a short resize message.
+Current keys: `Up`/`Down` and `j`/`k` scroll one line, `PageUp`/`PageDown` scroll one screen, `Home`/`End` jump to the start or end, `Tab`/`Shift+Tab` focus links, `Enter` activates a focused link, `?` opens help, and `q` or `Esc` quits. Click a link to activate it on a mouse-capable terminal. HTTP(S) links open in the default browser only after activation; anchors jump to headings. Terminals smaller than 40 columns by 10 rows show a short resize message.
 
 ## Current status
 
-The reader displays core CommonMark content plus GFM tables, task lists, strikethrough, and visible URL/email autolinks in a scrollable TUI or as plain rendered text when output is redirected. Wide tables switch to label/value rows when they do not fit.
+The reader displays core CommonMark content plus GFM tables, task lists, strikethrough, and visible URL/email autolinks in a scrollable TUI or as plain rendered text when output is redirected. Links can be focused and activated with the keyboard or mouse. Wide tables switch to label/value rows when they do not fit.
 
 ```sh
 # Run from source
@@ -78,7 +78,7 @@ See the [development ticket checklists](docs/tickets/README.md) for agent-sized 
 **Pembaca Markdown read-only di terminal.** `reamd` membuka satu dokumen di terminal yang sedang digunakan, dapat digulir, lalu pengguna kembali ke shell setelah keluar.
 
 > [!NOTE]
-> `reamd` masih dalam pengembangan awal. Render inti CommonMark dan sebagian GFM, pemuatan file, TUI yang dapat digulir, dan output teks biasa ke pipe sudah berjalan. Tema, aktivasi link, mouse, dan clipboard belum diimplementasikan.
+> `reamd` masih dalam pengembangan awal. Render inti CommonMark dan sebagian GFM, pemuatan file, TUI yang dapat digulir, output teks biasa ke pipe, dan navigasi link sudah tersedia. Pekerjaan tema dan dukungan clipboard belum diimplementasikan.
 
 ## Penggunaan
 
@@ -96,11 +96,11 @@ reamd --version
 
 Jika dijalankan tanpa argumen, `reamd` menampilkan bantuan dan contoh penggunaan lalu keluar dengan kode 0. MVP menerima satu path file per sesi dan belum membaca stdin. Di terminal interaktif, aplikasi membuka TUI read-only; jika output dialihkan atau di-pipe, aplikasi mencetak teks biasa tanpa ANSI.
 
-Tombol yang tersedia saat ini: `Up`/`Down` dan `j`/`k` menggulir satu baris, `PageUp`/`PageDown` menggulir satu layar, `Home`/`End` menuju awal atau akhir, `?` membuka bantuan, dan `q` atau `Esc` keluar. Terminal di bawah 40 kolom x 10 baris menampilkan pesan untuk memperbesar terminal.
+Tombol yang tersedia saat ini: `Up`/`Down` dan `j`/`k` menggulir satu baris, `PageUp`/`PageDown` menggulir satu layar, `Home`/`End` menuju awal atau akhir, `Tab`/`Shift+Tab` memfokuskan link, `Enter` mengaktifkan link terpilih, `?` membuka bantuan, dan `q` atau `Esc` keluar. Klik mengaktifkan link pada terminal dengan dukungan mouse. Link HTTP(S) membuka browser default hanya setelah aktivasi; anchor melompat ke heading. Terminal di bawah 40 kolom x 10 baris menampilkan pesan untuk memperbesar terminal.
 
 ## Status saat ini
 
-Reader merender konten inti CommonMark serta tabel GFM, task list, strikethrough, dan autolink URL/email yang terlihat di TUI yang dapat digulir atau sebagai teks render biasa saat output dialihkan. Tabel lebar berubah menjadi pasangan label/nilai saat tidak muat.
+Reader merender konten inti CommonMark serta tabel GFM, task list, strikethrough, dan autolink URL/email yang terlihat di TUI yang dapat digulir atau sebagai teks render biasa saat output dialihkan. Link dapat difokuskan dan diaktifkan dengan keyboard atau mouse. Tabel lebar berubah menjadi pasangan label/nilai saat tidak muat.
 
 ```sh
 # Jalankan dari source

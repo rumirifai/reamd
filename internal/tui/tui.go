@@ -4,10 +4,14 @@ package tui
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"os/exec"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
+	"unicode"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/uniseg"
@@ -24,23 +28,45 @@ const (
 
 // App is the screen-independent reader state.
 type App struct {
-	path   string
-	theme  cli.Theme
-	source []string
-	doc    *layout.Layout
-	view   layout.Viewport
-	width  int
-	height int
-	help   bool
-	zoom   int
+	path    string
+	theme   cli.Theme
+	source  []string
+	doc     *layout.Layout
+	view    layout.Viewport
+	width   int
+	height  int
+	help    bool
+	zoom    int
+	focused int
+	message string
+	opener  func(string) error
 }
 
 // New creates a reader for one document. The theme is validated by the CLI and
 // is carried here for the palette work in a later ticket.
 func New(path string, theme cli.Theme, source []string) *App {
-	a := &App{path: path, theme: theme, source: source, zoom: 100}
+	return NewWithOpener(path, theme, source, openBrowser)
+}
+
+// NewWithOpener allows browser activation to be verified without launching an OS browser.
+func NewWithOpener(path string, theme cli.Theme, source []string, opener func(string) error) *App {
+	a := &App{path: path, theme: theme, source: source, zoom: 100, focused: -1, opener: opener}
 	a.Resize(80, 24)
 	return a
+}
+
+func openBrowser(url string) error {
+	var name string
+	var args []string
+	switch runtime.GOOS {
+	case "windows":
+		name, args = "rundll32", []string{"url.dll,FileProtocolHandler", url}
+	case "darwin":
+		name, args = "open", []string{url}
+	default:
+		name, args = "xdg-open", []string{url}
+	}
+	return exec.Command(name, args...).Start()
 }
 
 // Theme reports the validated theme carried by this reader.
@@ -110,6 +136,14 @@ func (a *App) setZoom(zoom int) {
 
 // HandleKey applies one key event. It reports whether the app should exit.
 func (a *App) HandleKey(ev *tcell.EventKey) bool {
+	if ev.Key() == tcell.KeyTab || ev.Key() == tcell.KeyBacktab {
+		a.moveFocus(ev.Key() == tcell.KeyBacktab || ev.Modifiers()&tcell.ModShift != 0)
+		return false
+	}
+	if ev.Key() == tcell.KeyEnter {
+		a.activateFocused()
+		return false
+	}
 	if ev.Key() == tcell.KeyRune {
 		if ev.Modifiers()&tcell.ModCtrl != 0 && ev.Rune() == '0' {
 			a.setZoom(100)
@@ -209,10 +243,157 @@ func (a *App) drawDocument(screen tcell.Screen) {
 		return
 	}
 	left := (a.width - a.doc.Width) / 2
+	index := a.focusedLinkIndex()
 	for row, line := range a.view.Visible(a.doc.Lines) {
 		style := a.styleForLine(line.Text)
 		screen.PutStrStyled(left, row, line.Text, style)
+		for _, link := range line.Links {
+			linkStyle := style.Underline(true)
+			if index >= 0 && a.linkAt(index, a.view.Offset+row, link) {
+				linkStyle = linkStyle.Reverse(true)
+			}
+			x := left
+			graphemes := uniseg.NewGraphemes(line.Text)
+			for graphemes.Next() {
+				cluster := []rune(graphemes.Str())
+				if x < left+link.End && x+graphemes.Width() > left+link.Start && len(cluster) > 0 {
+					screen.SetContent(x, row, cluster[0], cluster[1:], linkStyle)
+				}
+				x += graphemes.Width()
+			}
+		}
 	}
+	if a.message != "" {
+		screen.PutStrStyled(0, a.height-2, truncate(a.message, a.width), a.baseStyle().Bold(true))
+	}
+}
+
+func (a *App) links() []struct {
+	row  int
+	link layout.Link
+} {
+	var links []struct {
+		row  int
+		link layout.Link
+	}
+	for row, line := range a.doc.Lines {
+		for _, link := range line.Links {
+			links = append(links, struct {
+				row  int
+				link layout.Link
+			}{row, link})
+		}
+	}
+	return links
+}
+func (a *App) focusedLinkIndex() int { return a.focused }
+func (a *App) linkAt(index, row int, link layout.Link) bool {
+	all := a.links()
+	return index >= 0 && index < len(all) && all[index].row == row && all[index].link == link
+}
+func (a *App) moveFocus(reverse bool) {
+	links := a.links()
+	if len(links) == 0 {
+		a.focused = -1
+		return
+	}
+	if reverse {
+		if a.focused <= 0 {
+			a.focused = len(links) - 1
+		} else {
+			a.focused--
+		}
+	} else {
+		a.focused = (a.focused + 1) % len(links)
+	}
+	row := links[a.focused].row
+	if row < a.view.Offset {
+		a.view.Offset = row
+	}
+	if row >= a.view.Offset+a.view.Height {
+		a.view.Offset = row - a.view.Height + 1
+	}
+	a.view.Clamp()
+	a.message = ""
+}
+func (a *App) activateFocused() {
+	links := a.links()
+	if a.focused < 0 || a.focused >= len(links) {
+		return
+	}
+	a.activate(links[a.focused].link.Target)
+}
+func (a *App) activate(target string) {
+	if strings.HasPrefix(target, "#") {
+		a.jumpAnchor(strings.TrimPrefix(target, "#"))
+		return
+	}
+	parsed, err := url.Parse(target)
+	if err != nil || (strings.ToLower(parsed.Scheme) != "http" && strings.ToLower(parsed.Scheme) != "https") || parsed.Host == "" {
+		return
+	}
+	if err := a.opener(target); err != nil {
+		a.message = "Cannot open browser: " + err.Error()
+	} else {
+		a.message = ""
+	}
+}
+
+func (a *App) HandleMouse(ev *tcell.EventMouse) {
+	if ev.Buttons()&tcell.Button1 == 0 || a.help {
+		return
+	}
+	x, y := ev.Position()
+	if y < 0 || y >= a.height-1 {
+		return
+	}
+	left := (a.width - a.doc.Width) / 2
+	row := a.view.Offset + y
+	if row < 0 || row >= len(a.doc.Lines) {
+		return
+	}
+	for _, link := range a.doc.Lines[row].Links {
+		if x >= left+link.Start && x < left+link.End {
+			a.activate(link.Target)
+			return
+		}
+	}
+}
+func (a *App) jumpAnchor(anchor string) {
+	used := map[string]int{}
+	for row, line := range a.doc.Lines {
+		if !strings.HasPrefix(line.Text, "# ") && !strings.HasPrefix(line.Text, "## ") && !strings.HasPrefix(line.Text, "### ") {
+			continue
+		}
+		title := strings.TrimLeft(line.Text, "# ")
+		slug := githubSlug(title)
+		n := used[slug]
+		used[slug]++
+		if n > 0 {
+			slug += "-" + fmt.Sprint(n)
+		}
+		if slug == anchor {
+			a.view.Offset = row
+			a.view.Clamp()
+			a.message = ""
+			return
+		}
+	}
+	a.message = "Anchor not found: #" + anchor
+}
+func githubSlug(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	var b strings.Builder
+	for _, r := range s {
+		if unicode.IsSpace(r) {
+			b.WriteByte('-')
+			continue
+		}
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r) || unicode.Is(unicode.Pc, r) || r == '-' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func (a *App) styleForLine(line string) tcell.Style {
@@ -262,13 +443,15 @@ func (a *App) drawHelp(screen tcell.Screen) {
 		{"Up / Down, j / k", "Scroll one line"},
 		{"PageUp / PageDown", "Scroll one screen"},
 		{"Home / End", "Jump to start/end"},
+		{"Tab / Shift+Tab", "Focus next / previous link"},
+		{"Enter", "Activate focused link"},
 		{"+ / -, Ctrl+0", "Zoom layout, reset to 100%"},
 		{"?", "Close this help"},
 		{"q / Esc", "Quit"},
 	}
 	screen.PutStrStyled(0, 0, "Keys", title)
 	for i, item := range lines {
-		row := i + 2
+		row := i + 1
 		screen.PutStrStyled(2, row, item.key, base.Bold(true))
 		screen.PutStrStyled(23, row, item.what, base)
 	}
@@ -374,7 +557,12 @@ func Run(path string, theme cli.Theme, source []string) error {
 // runInitialized runs the event loop on an initialized screen and owns its
 // restoration. handleSignals is false in tests.
 func runInitialized(screen tcell.Screen, path string, theme cli.Theme, source []string, handleSignals bool) error {
+	return runInitializedWithOpener(screen, path, theme, source, handleSignals, openBrowser)
+}
+
+func runInitializedWithOpener(screen tcell.Screen, path string, theme cli.Theme, source []string, handleSignals bool, opener func(string) error) error {
 	return withRestore(screen, func() error {
+		screen.EnableMouse()
 		if handleSignals {
 			stop := make(chan struct{})
 			defer close(stop)
@@ -392,7 +580,7 @@ func runInitialized(screen tcell.Screen, path string, theme cli.Theme, source []
 			}()
 		}
 
-		app := New(path, theme, source)
+		app := NewWithOpener(path, theme, source, opener)
 		app.Resize(screen.Size())
 		app.Draw(screen)
 		screen.Show()
@@ -409,6 +597,8 @@ func runInitialized(screen tcell.Screen, path string, theme cli.Theme, source []
 			case *tcell.EventResize:
 				app.Resize(ev.Size())
 				screen.Sync()
+			case *tcell.EventMouse:
+				app.HandleMouse(ev)
 			case *tcell.EventInterrupt:
 				return nil
 			}

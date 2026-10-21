@@ -73,10 +73,11 @@ func layoutTexts(lines []layout.Line) []string {
 
 func TestUnknownAndHTMLContentFallback(t *testing.T) {
 	doc := New("fallback.md", "<b>literal</b>\n\n<script>alert(\"do not run\")</script>\n\n~~strike~~\n\n[label](https://example.test) ![alt](image.png)\n\n```mermaid\ngraph A\n```")
-	joined := strings.Join(doc.Lines, "\n")
+	laid := layout.Build(doc.Lines, 80)
+	plain := strings.Join(layoutTexts(laid.Lines), "\n")
 	for _, text := range []string{"<b>literal</b>", "<script>alert(\"do not run\")</script>", "~~strike~~", "label (https://example.test)", "alt (image.png)", "◇ Mermaid diagram", "graph A"} {
-		if !strings.Contains(joined, text) {
-			t.Fatalf("fallback lost source content: %q", joined)
+		if !strings.Contains(plain, text) {
+			t.Fatalf("fallback lost source content: %q", plain)
 		}
 	}
 }
@@ -92,13 +93,13 @@ func TestCodeBlockAndInlineCodeMarkers(t *testing.T) {
 }
 
 func TestDocumentControlBytesCannotForgeLayoutRecords(t *testing.T) {
-	doc := New("markers.md", "before\x1dCODE: injected\x1eTABLE\x1fafter")
+	doc := New("markers.md", "before\x1cforged\x1dCODE: injected\x1eTABLE\x1fafter")
 	joined := strings.Join(doc.Lines, "\n")
-	if !strings.Contains(joined, "before^]CODE: injected^^TABLE^_after") {
+	if !strings.Contains(joined, "before^\\forged^]CODE: injected^^TABLE^_after") {
 		t.Fatalf("reserved control bytes were not made visible: %q", joined)
 	}
 	laid := layout.Build(doc.Lines, 80)
-	if got := strings.Join(layoutTexts(laid.Lines), "\n"); !strings.Contains(got, "before^]CODE: injected^^TABLE^_after") {
+	if got := strings.Join(layoutTexts(laid.Lines), "\n"); !strings.Contains(got, "before^\\forged^]CODE: injected^^TABLE^_after") {
 		t.Fatalf("document controls were treated as layout metadata: %q", got)
 	}
 }
@@ -159,6 +160,31 @@ func TestGFMRendersTablesTasksStrikethroughAndAutolinks(t *testing.T) {
 	}
 	if !strings.Contains(joined, "\x1eALIGN:left\x1fright") {
 		t.Fatalf("table alignment not retained: %q", joined)
+	}
+}
+
+func TestFX004LinkTargetsAndAnchorCandidates(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "fx-004.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := New("fx-004.md", string(data))
+	laid := layout.Build(doc.Lines, 100)
+	var targets []string
+	for _, line := range laid.Lines {
+		for _, link := range line.Links {
+			targets = append(targets, link.Target)
+		}
+	}
+	want := []string{"#cara-pakai", "#foo-bar", "#bagian-sama-1", "#tidak-ada", "https://example.com/docs", "mailto:contact@example.com"}
+	if strings.Join(targets, "|") != strings.Join(want, "|") {
+		t.Fatalf("link targets = %#v, want %#v", targets, want)
+	}
+	text := strings.Join(layoutTexts(laid.Lines), "\n")
+	for _, visible := range []string{"Anchor utama", "Anchor tanda baca", "Duplikat", "Tidak ada", "example.com/docs"} {
+		if !strings.Contains(text, visible) {
+			t.Errorf("FX-004 render missing %q: %s", visible, text)
+		}
 	}
 }
 
