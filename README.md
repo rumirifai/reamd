@@ -27,7 +27,7 @@ Current keys: `Up`/`Down` and `j`/`k` scroll one line, `PageUp`/`PageDown` scrol
 
 ## Current status
 
-The vertical slice reads one UTF-8 text file, shows it in a scrollable TUI, restores the terminal on exit, and writes plain text when output is redirected. File content is displayed as plain text for now; CommonMark/GFM layout is the next implementation ticket.
+The reader parses and displays core CommonMark headings, paragraphs, emphasis, inline code, breaks, lists, and blockquotes in a scrollable TUI or as plain rendered text when output is redirected. Other parsed constructs remain safe text fallbacks until their renderer is implemented.
 
 ```sh
 # Run from source
@@ -100,7 +100,7 @@ Tombol yang tersedia saat ini: `Up`/`Down` dan `j`/`k` menggulir satu baris, `Pa
 
 ## Status saat ini
 
-Vertical slice sudah membaca satu file teks UTF-8, menampilkannya di TUI yang dapat digulir, memulihkan terminal saat keluar, dan menulis teks biasa saat output dialihkan. Isi file masih ditampilkan sebagai teks dasar; layout CommonMark/GFM adalah ticket implementasi berikutnya.
+Reader sudah merender elemen inti CommonMark berupa heading, paragraf, penekanan, inline code, line break, list, dan blockquote di TUI yang dapat digulir atau sebagai teks render biasa saat output dialihkan. Elemen parser lain tetap menjadi fallback teks aman sampai renderer khususnya dibuat.
 
 ```sh
 # Jalankan dari source

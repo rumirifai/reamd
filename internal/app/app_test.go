@@ -42,6 +42,31 @@ func TestRunWithoutArgumentsPrintsHelp(t *testing.T) {
 	}
 }
 
+func TestPipeAndTUIReceiveParsedDocument(t *testing.T) {
+	path := writeTemp(t, "render.md", "# Title\n\n**bold** and `code`\n")
+	code, stdout, stderr := runCLI(t, []string{path}, false)
+	if code != 0 || stderr != "" {
+		t.Fatalf("pipe run = %d, stderr %q", code, stderr)
+	}
+	for _, want := range []string{"# Title", "**bold**", "`code`"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("pipe output lacks %q: %q", want, stdout)
+		}
+	}
+	if strings.Contains(stdout, "\x1b") {
+		t.Fatalf("pipe output contains ANSI escape: %q", stdout)
+	}
+	var tuiLines []string
+	var out, errOut bytes.Buffer
+	code = run([]string{path}, &out, &errOut, true, func(_ string, _ cli.Theme, lines []string) error { tuiLines = lines; return nil })
+	if code != 0 || errOut.Len() != 0 {
+		t.Fatalf("TUI run = %d, stderr %q", code, errOut.String())
+	}
+	if !strings.Contains(strings.Join(tuiLines, "\n"), "**bold**") {
+		t.Fatalf("TUI did not receive parsed lines: %#v", tuiLines)
+	}
+}
+
 func TestRunHelpAndVersion(t *testing.T) {
 	tests := []struct {
 		args []string

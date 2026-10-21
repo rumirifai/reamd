@@ -30,12 +30,53 @@ func Build(source []string, width int) *Layout {
 	}
 	out := &Layout{Width: width}
 	for _, raw := range source {
-		text := Sanitize(raw)
-		for _, part := range wrap(text, width) {
-			out.Lines = append(out.Lines, Line{Text: part, Width: uniseg.StringWidth(part)})
+		for _, rawLine := range strings.Split(raw, "\n") {
+			text := Sanitize(rawLine)
+			prefix := continuationPrefix(text)
+			parts := wrap(text, width)
+			if prefix != "" {
+				content := strings.TrimLeft(text[len(prefix):], " ")
+				continuation := strings.Repeat(" ", uniseg.StringWidth(prefix))
+				if strings.HasPrefix(prefix, ">") {
+					continuation = prefix
+				}
+				parts = wrap(prefix+content, width)
+				for i := 1; i < len(parts); i++ {
+					parts[i] = continuation + strings.TrimLeft(parts[i], " ")
+				}
+			}
+			for _, part := range parts {
+				out.Lines = append(out.Lines, Line{Text: part, Width: uniseg.StringWidth(part)})
+			}
 		}
 	}
 	return out
+}
+
+func continuationPrefix(s string) string {
+	i := 0
+	for i < len(s) && s[i] == ' ' {
+		i++
+	}
+	if i < len(s) && s[i] == '>' {
+		j := i + 1
+		if j < len(s) && s[j] == ' ' {
+			j++
+		}
+		return s[:j]
+	}
+	if i < len(s) && (s[i] == '-' || s[i] == '*' || s[i] == '+') && i+1 < len(s) && s[i+1] == ' ' {
+		return s[:i+2]
+	}
+	for j := i; j < len(s) && s[j] >= '0' && s[j] <= '9'; j++ {
+		if j+1 < len(s) && (s[j+1] == '.' || s[j+1] == ')') && s[j+1:j+2] != "" {
+			k := j + 2
+			if k < len(s) && s[k] == ' ' {
+				return s[:k+1]
+			}
+		}
+	}
+	return ""
 }
 
 // Sanitize replaces control characters with printable notation and expands

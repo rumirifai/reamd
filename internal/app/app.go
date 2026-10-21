@@ -59,7 +59,7 @@ func run(args []string, stdout, stderr io.Writer, interactive bool, runTUI tuiRu
 	return 0
 }
 
-// writePlain emits sanitized source lines without ANSI or a terminal takeover.
+// writePlain emits the parsed, laid-out document without ANSI or terminal takeover.
 func writePlain(w io.Writer, lines []string) {
 	if len(lines) == 0 {
 		return
