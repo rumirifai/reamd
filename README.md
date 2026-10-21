@@ -3,7 +3,7 @@
 **A read-only Markdown reader for your terminal.** `reamd` opens one document in the current terminal, lets you scroll through it, and returns you to the shell when you quit.
 
 > [!NOTE]
-> `reamd` is in early development. The command line, file loading, scrolling TUI, and plain pipe output work. Markdown rendering, themes, links, mouse input, and clipboard support are not implemented yet.
+> `reamd` is in early development. Core CommonMark and selected GFM rendering, file loading, scrolling TUI, and plain pipe output work. Themes, link activation, mouse input, and clipboard support are not implemented yet.
 
 **Languages:** English | [Bahasa Indonesia](#reamd-bahasa-indonesia)
 
@@ -27,7 +27,7 @@ Current keys: `Up`/`Down` and `j`/`k` scroll one line, `PageUp`/`PageDown` scrol
 
 ## Current status
 
-The reader parses and displays core CommonMark headings, paragraphs, emphasis, inline code, breaks, lists, and blockquotes in a scrollable TUI or as plain rendered text when output is redirected. Other parsed constructs remain safe text fallbacks until their renderer is implemented.
+The reader displays core CommonMark content plus GFM tables, task lists, strikethrough, and visible URL/email autolinks in a scrollable TUI or as plain rendered text when output is redirected. Wide tables switch to label/value rows when they do not fit.
 
 ```sh
 # Run from source
@@ -57,7 +57,7 @@ go build -o reamd ./cmd/reamd
 
 ## Project status
 
-Go 1.25 is the approved minimum project toolchain. Goldmark is the approved Markdown parser and tcell is the approved TUI library. The current vertical slice uses tcell, `uniseg` for display width, and `x/term` for terminal detection; Goldmark is not wired in yet because Markdown rendering belongs to the next ticket. The clipboard package, installation method, and release process have not been selected. The distribution goal is to provide ready-to-run binaries so users do not need to install Go themselves.
+Go 1.25 is the approved minimum project toolchain. Goldmark is the Markdown parser and tcell is the TUI library. The application uses `uniseg` for display width and `x/term` for terminal detection. The clipboard package, installation method, and release process have not been selected. The distribution goal is to provide ready-to-run binaries so users do not need to install Go themselves.
 
 See the [technical analysis and MVP proposal](docs/markdown-terminal-reader-analysis.md) for the REA observations, design decisions, open questions, and acceptance criteria.
 
@@ -78,7 +78,7 @@ See the [development ticket checklists](docs/tickets/README.md) for agent-sized 
 **Pembaca Markdown read-only di terminal.** `reamd` membuka satu dokumen di terminal yang sedang digunakan, dapat digulir, lalu pengguna kembali ke shell setelah keluar.
 
 > [!NOTE]
-> `reamd` masih dalam pengembangan awal. Command line, pemuatan file, TUI yang dapat digulir, dan output teks biasa ke pipe sudah berjalan. Render Markdown, tema, link, mouse, dan clipboard belum diimplementasikan.
+> `reamd` masih dalam pengembangan awal. Render inti CommonMark dan sebagian GFM, pemuatan file, TUI yang dapat digulir, dan output teks biasa ke pipe sudah berjalan. Tema, aktivasi link, mouse, dan clipboard belum diimplementasikan.
 
 ## Penggunaan
 
@@ -100,7 +100,7 @@ Tombol yang tersedia saat ini: `Up`/`Down` dan `j`/`k` menggulir satu baris, `Pa
 
 ## Status saat ini
 
-Reader sudah merender elemen inti CommonMark berupa heading, paragraf, penekanan, inline code, line break, list, dan blockquote di TUI yang dapat digulir atau sebagai teks render biasa saat output dialihkan. Elemen parser lain tetap menjadi fallback teks aman sampai renderer khususnya dibuat.
+Reader merender konten inti CommonMark serta tabel GFM, task list, strikethrough, dan autolink URL/email yang terlihat di TUI yang dapat digulir atau sebagai teks render biasa saat output dialihkan. Tabel lebar berubah menjadi pasangan label/nilai saat tidak muat.
 
 ```sh
 # Jalankan dari source
@@ -130,7 +130,7 @@ go build -o reamd ./cmd/reamd
 
 ## Status proyek
 
-Go 1.25 adalah versi minimum toolchain proyek yang disetujui. Goldmark disetujui sebagai parser Markdown dan tcell sebagai library TUI. Vertical slice saat ini memakai tcell, `uniseg` untuk lebar tampilan, dan `x/term` untuk deteksi terminal; Goldmark belum dihubungkan karena render Markdown menjadi lingkup ticket berikutnya. Package clipboard, cara instalasi, serta proses rilis belum ditentukan. Tujuan distribusinya adalah menyediakan binary siap pakai agar pengguna tidak perlu memasang Go sendiri.
+Go 1.25 adalah versi minimum toolchain proyek yang disetujui. Goldmark menjadi parser Markdown dan tcell library TUI. Aplikasi memakai `uniseg` untuk lebar tampilan dan `x/term` untuk deteksi terminal. Package clipboard, cara instalasi, serta proses rilis belum ditentukan. Tujuan distribusinya adalah menyediakan binary siap pakai agar pengguna tidak perlu memasang Go sendiri.
 
 Lihat [analisis teknis dan rancangan MVP](docs/markdown-terminal-reader-analysis.md) untuk hasil observasi REA, keputusan rancangan, pertanyaan terbuka, dan kriteria penerimaan.
 

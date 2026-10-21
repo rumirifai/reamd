@@ -81,6 +81,54 @@ func TestUnknownAndHTMLContentFallback(t *testing.T) {
 	}
 }
 
+func TestGFMRendersTablesTasksStrikethroughAndAutolinks(t *testing.T) {
+	doc := New("gfm.md", "| Name | State |\n| :--- | ---: |\n| Parser | Done |\n\n- [x] checked\n- [ ] unchecked\n\n~~removed~~ https://example.com contact@example.com")
+	joined := strings.Join(doc.Lines, "\n")
+	for _, want := range []string{"[x] checked", "[ ] unchecked", "~~removed~~", "https://example.com", "contact@example.com", "\x1eTABLE"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("render missing %q: %q", want, joined)
+		}
+	}
+	if strings.Contains(joined, "https://example.com (https://example.com)") {
+		t.Fatal("autolink URL was duplicated")
+	}
+	if !strings.Contains(joined, "\x1eALIGN:left\x1fright") {
+		t.Fatalf("table alignment not retained: %q", joined)
+	}
+}
+
+func TestResponsiveTablesKeepEveryCellAtRepresentativeWidths(t *testing.T) {
+	doc := New("table.md", "| Long label | Value |\n| :--- | ---: |\n| 日本語の項目 | a complete value that must remain visible |\n| Wide | another full cell value |")
+	for _, width := range []int{40, 80, 120} {
+		laid := layout.BuildTables(doc.Lines, width)
+		var lines []string
+		for _, line := range laid.Lines {
+			lines = append(lines, line.Text)
+			if line.Width > width {
+				t.Errorf("width %d exceeded by %q", width, line.Text)
+			}
+		}
+		joined := strings.Join(lines, "\n")
+		compact := strings.Join(strings.Fields(joined), " ")
+		for _, val := range []string{"a complete value that must remain visible", "another full cell value", "日本語の項目"} {
+			if !strings.Contains(compact, val) {
+				t.Errorf("width %d lost cell %q in %q", width, val, joined)
+			}
+		}
+		if width == 40 && !strings.Contains(joined, "Long label: ") {
+			t.Errorf("width 40 did not stack table: %q", joined)
+		}
+		if width >= 80 && !strings.Contains(joined, "| Long label") {
+			t.Errorf("width %d did not use table grid: %q", width, joined)
+		}
+	}
+	aligned := New("aligned.md", "| Name | State |\n| :--- | ---: |\n| Parser | Done |")
+	grid := layout.BuildTables(aligned.Lines, 80)
+	if got := strings.Join(layoutTexts(grid.Lines), "\n"); !strings.Contains(got, "| Parser |  Done |") {
+		t.Errorf("right-aligned table cell not padded on the left: %q", got)
+	}
+}
+
 func TestNewEmpty(t *testing.T) {
 	for _, content := range []string{"", "\n", "\r\n"} {
 		doc := New("empty.md", content)

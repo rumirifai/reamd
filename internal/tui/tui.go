@@ -60,7 +60,7 @@ func (a *App) Resize(width, height int) {
 	if contentHeight < 1 {
 		contentHeight = 1
 	}
-	a.doc = layout.Build(a.source, width)
+	a.doc = layout.BuildTables(a.source, width)
 	a.view.Resize(contentHeight, len(a.doc.Lines))
 }
 

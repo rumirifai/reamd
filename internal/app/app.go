@@ -48,7 +48,12 @@ func run(args []string, stdout, stderr io.Writer, interactive bool, runTUI tuiRu
 	doc := document.New(opts.Path, content)
 
 	if !interactive {
-		writePlain(stdout, doc.Lines)
+		laid := layout.BuildTables(doc.Lines, 80)
+		plain := make([]string, len(laid.Lines))
+		for i, line := range laid.Lines {
+			plain[i] = line.Text
+		}
+		writePlain(stdout, plain)
 		return 0
 	}
 

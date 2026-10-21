@@ -7,6 +7,7 @@ import (
 
 	"github.com/rumirifai/reamd/internal/parser"
 	"github.com/yuin/goldmark/ast"
+	extast "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/text"
 )
 
@@ -87,6 +88,33 @@ func renderBlock(n ast.Node, src []byte, depth int, out *[]string) {
 		}
 	case *ast.ThematicBreak:
 		*out = append(*out, strings.Repeat("  ", depth)+"────────────────", "")
+	case *extast.Table:
+		var headers, rows []string
+		for row := node.FirstChild(); row != nil; row = row.NextSibling() {
+			var cells []string
+			for cell := row.FirstChild(); cell != nil; cell = cell.NextSibling() {
+				var b strings.Builder
+				renderInline(cell, src, &b)
+				cells = append(cells, b.String())
+			}
+			if row.Kind() == extast.KindTableHeader {
+				headers = append(headers, strings.Join(cells, "\x1f"))
+			} else {
+				rows = append(rows, strings.Join(cells, "\x1f"))
+			}
+		}
+		*out = append(*out, "\x1eTABLE")
+		var align []string
+		for _, a := range node.Alignments {
+			align = append(align, a.String())
+		}
+		*out = append(*out, "\x1eALIGN:"+strings.Join(align, "\x1f"))
+		for _, cells := range append(headers, rows...) {
+			*out = append(*out, "\x1eROW:"+cells)
+		}
+		*out = append(*out, "\x1eENDTABLE", "")
+	case *ast.ListItem:
+		// Task markers are represented in text by GFM TaskCheckBox nodes.
 	case *ast.CodeBlock:
 		renderLiteralLines(node.Lines(), src, depth, out)
 	case *ast.FencedCodeBlock:
@@ -153,6 +181,18 @@ func renderInline(n ast.Node, src []byte, b *strings.Builder) {
 			b.WriteString(marker)
 			renderInline(x, src, b)
 			b.WriteString(marker)
+		case *extast.Strikethrough:
+			b.WriteString("~~")
+			renderInline(x, src, b)
+			b.WriteString("~~")
+		case *ast.AutoLink:
+			b.Write(x.Label(src))
+		case *extast.TaskCheckBox:
+			if x.IsChecked {
+				b.WriteString("[x] ")
+			} else {
+				b.WriteString("[ ] ")
+			}
 		default:
 			renderInline(child, src, b)
 		}

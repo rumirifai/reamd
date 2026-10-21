@@ -22,35 +22,121 @@ type Layout struct {
 	Lines []Line
 }
 
-// Build sanitizes and wraps source lines to width columns. Widths below one are
-// treated as one column.
+// Build lays out document lines, including responsive table records.
 func Build(source []string, width int) *Layout {
+	return BuildTables(source, width)
+}
+
+// BuildTables lays out GFM table rows as a grid when all columns fit, otherwise
+// as label/value pairs. The renderer preserves every cell and wraps by display width.
+func BuildTables(source []string, width int) *Layout {
 	if width < 1 {
 		width = 1
 	}
 	out := &Layout{Width: width}
-	for _, raw := range source {
-		for _, rawLine := range strings.Split(raw, "\n") {
-			text := Sanitize(rawLine)
-			prefix := continuationPrefix(text)
-			parts := wrap(text, width)
-			if prefix != "" {
-				content := strings.TrimLeft(text[len(prefix):], " ")
-				continuation := strings.Repeat(" ", uniseg.StringWidth(prefix))
-				if strings.HasPrefix(prefix, ">") {
-					continuation = prefix
-				}
-				parts = wrap(prefix+content, width)
-				for i := 1; i < len(parts); i++ {
-					parts[i] = continuation + strings.TrimLeft(parts[i], " ")
+	for i := 0; i < len(source); {
+		if source[i] != "\x1eTABLE" {
+			appendWrapped(out, source[i], width)
+			i++
+			continue
+		}
+		i++
+		var rows [][]string
+		var alignments []string
+		for i < len(source) && source[i] != "\x1eENDTABLE" {
+			if strings.HasPrefix(source[i], "\x1eROW:") {
+				rows = append(rows, strings.Split(strings.TrimPrefix(source[i], "\x1eROW:"), "\x1f"))
+			}
+			if strings.HasPrefix(source[i], "\x1eALIGN:") {
+				alignments = strings.Split(strings.TrimPrefix(source[i], "\x1eALIGN:"), "\x1f")
+			}
+			i++
+		}
+		if i < len(source) {
+			i++
+		}
+		if len(rows) == 0 {
+			continue
+		}
+		cols := len(rows[0])
+		widths := make([]int, cols)
+		for _, row := range rows {
+			for c, cell := range row {
+				if c < cols && uniseg.StringWidth(Sanitize(cell)) > widths[c] {
+					widths[c] = uniseg.StringWidth(Sanitize(cell))
 				}
 			}
-			for _, part := range parts {
-				out.Lines = append(out.Lines, Line{Text: part, Width: uniseg.StringWidth(part)})
+		}
+		need := 3*cols + 1
+		for _, cw := range widths {
+			need += cw
+		}
+		if need <= width {
+			for r, row := range rows {
+				var b strings.Builder
+				b.WriteByte('|')
+				for c := 0; c < cols; c++ {
+					cell := ""
+					if c < len(row) {
+						cell = Sanitize(row[c])
+					}
+					pad := widths[c] - uniseg.StringWidth(cell)
+					left, right := 0, pad
+					if c < len(alignments) && alignments[c] == "right" {
+						left, right = pad, 0
+					}
+					if c < len(alignments) && alignments[c] == "center" {
+						left, right = pad/2, pad-pad/2
+					}
+					b.WriteByte(' ')
+					b.WriteString(strings.Repeat(" ", left))
+					b.WriteString(cell)
+					b.WriteString(strings.Repeat(" ", right))
+					b.WriteString(" |")
+				}
+				appendWrapped(out, b.String(), width)
+				if r == 0 {
+					sep := "|"
+					for _, cw := range widths {
+						sep += strings.Repeat("-", cw+2) + "|"
+					}
+					appendWrapped(out, sep, width)
+				}
+			}
+		} else {
+			for _, row := range rows[1:] {
+				for c, label := range rows[0] {
+					val := ""
+					if c < len(row) {
+						val = row[c]
+					}
+					appendWrapped(out, Sanitize(label)+": "+Sanitize(val), width)
+				}
+				appendWrapped(out, "", width)
 			}
 		}
 	}
 	return out
+}
+
+func appendWrapped(out *Layout, raw string, width int) {
+	text := Sanitize(raw)
+	prefix := continuationPrefix(text)
+	parts := wrap(text, width)
+	if prefix != "" {
+		content := strings.TrimLeft(text[len(prefix):], " ")
+		continuation := strings.Repeat(" ", uniseg.StringWidth(prefix))
+		if strings.HasPrefix(prefix, ">") {
+			continuation = prefix
+		}
+		parts = wrap(prefix+content, width)
+		for i := 1; i < len(parts); i++ {
+			parts[i] = continuation + strings.TrimLeft(parts[i], " ")
+		}
+	}
+	for _, part := range parts {
+		out.Lines = append(out.Lines, Line{Text: part, Width: uniseg.StringWidth(part)})
+	}
 }
 
 func continuationPrefix(s string) string {
