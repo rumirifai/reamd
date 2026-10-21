@@ -23,6 +23,7 @@ func New(path, content string) *Document {
 	content = strings.TrimPrefix(content, "\uFEFF")
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	content = strings.ReplaceAll(content, "\r", "\n")
+	content = escapeLayoutMarkers(content)
 	if content == "" {
 		return &Document{Path: path}
 	}
@@ -35,6 +36,21 @@ func New(path, content string) *Document {
 		lines = lines[:len(lines)-1]
 	}
 	return &Document{Path: path, Lines: lines}
+}
+
+// escapeLayoutMarkers prevents document bytes reserved for internal layout
+// records from being mistaken for renderer metadata.
+func escapeLayoutMarkers(content string) string {
+	var b strings.Builder
+	for _, r := range content {
+		if r >= 0x1d && r <= 0x1f {
+			b.WriteByte('^')
+			b.WriteRune(r + 0x40)
+			continue
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
 }
 
 func renderBlock(n ast.Node, src []byte, depth int, out *[]string) {
@@ -116,11 +132,18 @@ func renderBlock(n ast.Node, src []byte, depth int, out *[]string) {
 	case *ast.ListItem:
 		// Task markers are represented in text by GFM TaskCheckBox nodes.
 	case *ast.CodeBlock:
-		renderLiteralLines(node.Lines(), src, depth, out)
+		renderLiteralLines(node.Lines(), src, depth, "", out)
 	case *ast.FencedCodeBlock:
-		renderLiteralLines(node.Lines(), src, depth, out)
+		language := ""
+		if node.Language(src) != nil {
+			language = string(node.Language(src))
+		}
+		if language == "mermaid" {
+			*out = append(*out, "◇ Mermaid diagram")
+		}
+		renderLiteralLines(node.Lines(), src, depth, language, out)
 	case *ast.HTMLBlock:
-		renderLiteralLines(node.Lines(), src, depth, out)
+		renderLiteralLines(node.Lines(), src, depth, "", out)
 	default:
 		// Unknown block nodes retain all descendant text rather than disappearing.
 		var b strings.Builder
@@ -131,11 +154,13 @@ func renderBlock(n ast.Node, src []byte, depth int, out *[]string) {
 	}
 }
 
-func renderLiteralLines(lines *text.Segments, src []byte, depth int, out *[]string) {
+func renderLiteralLines(lines *text.Segments, src []byte, depth int, language string, out *[]string) {
+	*out = append(*out, "\x1dCODE:"+language)
 	for i := 0; i < lines.Len(); i++ {
 		segment := lines.At(i)
 		*out = append(*out, strings.Repeat("  ", depth)+string(segment.Value(src)))
 	}
+	*out = append(*out, "\x1dENDCODE")
 	*out = append(*out, "")
 }
 

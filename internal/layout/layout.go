@@ -35,6 +35,25 @@ func BuildTables(source []string, width int) *Layout {
 	}
 	out := &Layout{Width: width}
 	for i := 0; i < len(source); {
+		if strings.HasPrefix(source[i], "\x1dCODE:") {
+			language := strings.TrimPrefix(source[i], "\x1dCODE:")
+			if language == "" {
+				appendWrapped(out, "┌─ code", width)
+			} else {
+				appendWrapped(out, "┌─ code ("+Sanitize(language)+")", width)
+			}
+			i++
+			for i < len(source) && source[i] != "\x1dENDCODE" {
+				appendCodeWrapped(out, source[i], width)
+				i++
+			}
+			if i < len(source) {
+				i++
+			}
+			appendWrapped(out, "└─", width)
+			i++
+			continue
+		}
 		if source[i] != "\x1eTABLE" {
 			appendWrapped(out, source[i], width)
 			i++
@@ -117,6 +136,42 @@ func BuildTables(source []string, width int) *Layout {
 		}
 	}
 	return out
+}
+
+func appendCodeWrapped(out *Layout, raw string, width int) {
+	text := Sanitize(raw)
+	const firstPrefix, continuationPrefix = "│ ", "↪ "
+	remaining := text
+	prefix := firstPrefix
+	for {
+		available := width - uniseg.StringWidth(prefix)
+		if available < 1 {
+			available = 1
+		}
+		part, rest := takeWidth(remaining, available)
+		line := prefix + part
+		out.Lines = append(out.Lines, Line{Text: line, Width: uniseg.StringWidth(line)})
+		if rest == "" {
+			break
+		}
+		remaining, prefix = rest, continuationPrefix
+	}
+}
+
+func takeWidth(s string, width int) (string, string) {
+	var b strings.Builder
+	used := 0
+	g := uniseg.NewGraphemes(s)
+	for g.Next() {
+		cluster := g.Str()
+		cw := g.Width()
+		if used+cw > width && used > 0 {
+			return b.String(), s[len(b.String()):]
+		}
+		b.WriteString(cluster)
+		used += cw
+	}
+	return b.String(), ""
 }
 
 func appendWrapped(out *Layout, raw string, width int) {

@@ -72,12 +72,77 @@ func layoutTexts(lines []layout.Line) []string {
 }
 
 func TestUnknownAndHTMLContentFallback(t *testing.T) {
-	doc := New("fallback.md", "<b>literal</b>\n\n~~strike~~\n\n[label](https://example.test) ![alt](image.png)\n\n```mermaid\ngraph A\n```")
+	doc := New("fallback.md", "<b>literal</b>\n\n<script>alert(\"do not run\")</script>\n\n~~strike~~\n\n[label](https://example.test) ![alt](image.png)\n\n```mermaid\ngraph A\n```")
 	joined := strings.Join(doc.Lines, "\n")
-	for _, text := range []string{"<b>literal</b>", "~~strike~~", "label (https://example.test)", "alt (image.png)", "graph A"} {
+	for _, text := range []string{"<b>literal</b>", "<script>alert(\"do not run\")</script>", "~~strike~~", "label (https://example.test)", "alt (image.png)", "◇ Mermaid diagram", "graph A"} {
 		if !strings.Contains(joined, text) {
 			t.Fatalf("fallback lost source content: %q", joined)
 		}
+	}
+}
+
+func TestCodeBlockAndInlineCodeMarkers(t *testing.T) {
+	doc := New("code.md", "Inline `x := 1`\n\n```go\n  fmt.Println(\"hello\")\n```\n")
+	joined := strings.Join(doc.Lines, "\n")
+	for _, want := range []string{"`x := 1`", "\x1dCODE:go", "  fmt.Println(\"hello\")", "\x1dENDCODE"} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("document code model lacks %q: %q", want, joined)
+		}
+	}
+}
+
+func TestDocumentControlBytesCannotForgeLayoutRecords(t *testing.T) {
+	doc := New("markers.md", "before\x1dCODE: injected\x1eTABLE\x1fafter")
+	joined := strings.Join(doc.Lines, "\n")
+	if !strings.Contains(joined, "before^]CODE: injected^^TABLE^_after") {
+		t.Fatalf("reserved control bytes were not made visible: %q", joined)
+	}
+	laid := layout.Build(doc.Lines, 80)
+	if got := strings.Join(layoutTexts(laid.Lines), "\n"); !strings.Contains(got, "before^]CODE: injected^^TABLE^_after") {
+		t.Fatalf("document controls were treated as layout metadata: %q", got)
+	}
+}
+
+func TestTicket05Fixtures(t *testing.T) {
+	for _, fixture := range []string{"fx-005.md", "fx-007.md", "fx-008.md"} {
+		t.Run(fixture, func(t *testing.T) {
+			data, err := os.ReadFile(filepath.Join("testdata", fixture))
+			if err != nil {
+				t.Fatal(err)
+			}
+			doc := New(fixture, string(data))
+			laid := layout.Build(doc.Lines, 40)
+			var rendered []string
+			for _, line := range laid.Lines {
+				rendered = append(rendered, line.Text)
+				if line.Width > 40 {
+					t.Errorf("line exceeds width 40: %q", line.Text)
+				}
+			}
+			joined := strings.Join(rendered, "\n")
+			switch fixture {
+			case "fx-005.md":
+				for _, want := range []string{"code (go)", "│ ", "↪ ", "println", "`x := 1`"} {
+					if !strings.Contains(joined, want) {
+						t.Errorf("render lacks %q: %q", want, joined)
+					}
+				}
+			case "fx-007.md":
+				if !strings.Contains(joined, "<b>Tag tebal literal</b>") {
+					t.Errorf("literal HTML lacks bold tag: %q", joined)
+				}
+				literal := strings.ReplaceAll(strings.ReplaceAll(strings.ReplaceAll(joined, "│ ", ""), "↪ ", ""), "\n", "")
+				if !strings.Contains(literal, "<script>alert(\"jangan dijalankan\")</script>") {
+					t.Errorf("literal HTML script text was lost: %q", joined)
+				}
+			case "fx-008.md":
+				for _, want := range []string{"Mermaid diagram", "graph TD", "A[Mulai] --> B[Selesai]"} {
+					if !strings.Contains(joined, want) {
+						t.Errorf("Mermaid fallback lacks %q: %q", want, joined)
+					}
+				}
+			}
+		})
 	}
 }
 

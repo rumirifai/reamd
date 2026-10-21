@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
@@ -15,6 +16,32 @@ func TestNewWrapsAndShowsFirstLines(t *testing.T) {
 	}
 	if app.view.Offset != 0 {
 		t.Fatalf("initial offset = %d, want 0", app.view.Offset)
+	}
+}
+
+func TestDrawSanitizesActualTerminalControlBytes(t *testing.T) {
+	source := []string{"before\x1b[2Jafter \x07 \x1b]52;c;DATA\x07 \u0085\u009b31m"}
+	app := New("controls.md", cli.ThemeAuto, source)
+	app.Resize(80, 10)
+	screen := newScreen(t, 80, 10)
+	app.Draw(screen)
+	screen.Show()
+	cells, width, height := screen.GetContents()
+	var rendered strings.Builder
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			for _, r := range cells[y*width+x].Runes {
+				if (r < 0x20 && r != '\n') || (r >= 0x7f && r <= 0x9f) {
+					t.Fatalf("TUI cell retained control U+%04X", r)
+				}
+				rendered.WriteRune(r)
+			}
+		}
+	}
+	for _, want := range []string{"^[[2J", "^G", "^[]52;c;DATA^G", `\u0085`, `\u009b`} {
+		if !strings.Contains(rendered.String(), want) {
+			t.Errorf("TUI output lacks visible notation %q: %q", want, rendered.String())
+		}
 	}
 }
 

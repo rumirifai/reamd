@@ -3,9 +3,12 @@ package app
 import (
 	"bytes"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/rumirifai/reamd/internal/cli"
@@ -169,7 +172,8 @@ func TestRunPipeOutputIsPlain(t *testing.T) {
 }
 
 func TestRunPipeSanitizesControlCharacters(t *testing.T) {
-	path := writeTemp(t, "controls.md", "before\x1b[2Jafter\n")
+	content := "before\x1b[2Jafter\nBEL:\x07 OSC:\x1b]52;c;DATA\x07 C1:\u0085\u009b31m CSI8:\u009b2J DEL:\x7f"
+	path := writeTemp(t, "controls.md", content)
 	code, stdout, _ := runCLI(t, []string{path}, false)
 	if code != 0 {
 		t.Fatalf("exit code = %d, want 0", code)
@@ -177,8 +181,35 @@ func TestRunPipeSanitizesControlCharacters(t *testing.T) {
 	if strings.Contains(stdout, "\x1b") {
 		t.Fatalf("stdout contains an escape character: %q", stdout)
 	}
-	if !strings.Contains(stdout, "^[[2J") {
-		t.Fatalf("stdout = %q, want a visible ESC notation", stdout)
+	for _, want := range []string{"^[[2J", "^G", "^[]52;c;DATA^G", `\u0085`, `\u009b`, "^?"} {
+		if !strings.Contains(stdout, want) {
+			t.Errorf("stdout = %q, want safe notation %q", stdout, want)
+		}
+	}
+	for _, r := range stdout {
+		if (r < 0x20 && r != '\n') || (r >= 0x7f && r <= 0x9f) {
+			t.Fatalf("pipe output retained terminal control U+%04X: %q", r, stdout)
+		}
+	}
+}
+
+func TestRenderingLinksAndImagesDoesNotRequestNetwork(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	path := writeTemp(t, "no-network.md", "![local fixture]("+server.URL+"/image.png)\n\n[link]("+server.URL+"/page)\n")
+	code, stdout, stderr := runCLI(t, []string{path}, false)
+	if code != 0 || stderr != "" {
+		t.Fatalf("render = %d, stderr %q", code, stderr)
+	}
+	if !strings.Contains(stdout, server.URL) {
+		t.Fatalf("render omitted URL: %q", stdout)
+	}
+	if requests.Load() != 0 {
+		t.Fatalf("render made %d HTTP requests", requests.Load())
 	}
 }
 

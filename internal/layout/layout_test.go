@@ -60,6 +60,32 @@ func TestBuildBreaksLongWord(t *testing.T) {
 	}
 }
 
+func TestBuildWrapsCodeWithoutLosingWhitespaceAndMarksContinuation(t *testing.T) {
+	source := []string{"\x1dCODE:go", "  alpha beta gamma delta", "\x1dENDCODE"}
+	for _, width := range []int{40, 80, 120} {
+		laid := Build(source, width)
+		var codeLines []string
+		for _, line := range laid.Lines {
+			if strings.HasPrefix(line.Text, "│ ") || strings.HasPrefix(line.Text, "↪ ") {
+				codeLines = append(codeLines, strings.TrimPrefix(strings.TrimPrefix(line.Text, "│ "), "↪ "))
+				if line.Width > width {
+					t.Errorf("width %d exceeded by code row %q", width, line.Text)
+				}
+			}
+		}
+		if len(codeLines) == 0 || codeLines[0] != "  alpha beta gamma delta" {
+			t.Fatalf("width %d code whitespace/content changed: %#v", width, codeLines)
+		}
+	}
+	long := Build([]string{"\x1dCODE:", "abcdefghijklmnopqrstuvwxyz", "\x1dENDCODE"}, 10)
+	joined := strings.Join(texts(long.Lines), "\n")
+	code := strings.ReplaceAll(strings.ReplaceAll(joined, "┌─ code\n", ""), "\n└─", "")
+	code = strings.ReplaceAll(strings.ReplaceAll(code, "│ ", ""), "↪ ", "")
+	if !strings.Contains(joined, "↪ ") || strings.ReplaceAll(code, "\n", "") != "abcdefghijklmnopqrstuvwxyz" {
+		t.Fatalf("long code lacks continuation or content: %q", joined)
+	}
+}
+
 func TestViewportScrollAndClamp(t *testing.T) {
 	v := Viewport{}
 	v.Resize(3, 10)
