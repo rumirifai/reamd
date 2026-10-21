@@ -3,7 +3,7 @@
 **A read-only Markdown reader for your terminal.** `reamd` opens one document in the current terminal, lets you scroll through it, and returns you to the shell when you quit.
 
 > [!NOTE]
-> `reamd` is in early development. Core CommonMark and selected GFM rendering, file loading, scrolling TUI, plain pipe output, and link navigation are implemented. Theme work and clipboard support are not implemented yet.
+> `reamd` is in early development. Core CommonMark and selected GFM rendering, file loading, scrolling TUI, plain pipe output, link navigation, and text selection/copy are implemented. Theme work remains in progress. Clipboard smoke testing has been observed on Windows Terminal only.
 
 **Languages:** English | [Bahasa Indonesia](#reamd-bahasa-indonesia)
 
@@ -23,7 +23,7 @@ reamd --version
 
 With no arguments, `reamd` shows help and usage examples and exits with code 0. It accepts one file path per run and does not read from stdin. In an interactive terminal it opens a read-only TUI; when output is redirected or piped, it prints plain text without ANSI styling.
 
-Current keys: `Up`/`Down` and `j`/`k` scroll one line, `PageUp`/`PageDown` scroll one screen, `Home`/`End` jump to the start or end, `Tab`/`Shift+Tab` focus links, `Enter` activates a focused link, `?` opens help, and `q` or `Esc` quits. On mouse-capable terminals, the wheel scrolls and the scrollbar can be clicked or dragged; clicking a link activates it. HTTP(S) links open in the default browser only after activation; anchors jump to headings. Terminals smaller than 40 columns by 10 rows show a short resize message.
+Current keys: `Up`/`Down` and `j`/`k` scroll one line, `PageUp`/`PageDown` scroll one screen, `Home`/`End` jump to the start or end, `Tab`/`Shift+Tab` focus links, `Enter` activates a focused link, `Ctrl+C` copies selected text, `?` opens help, and `q` or `Esc` quits. On mouse-capable terminals, drag selects visible text, the wheel scrolls, and the scrollbar can be clicked or dragged; clicking a link activates it. HTTP(S) links open in the default browser only after activation; anchors jump to headings. Terminals smaller than 40 columns by 10 rows show a short resize message.
 
 ## Current status
 
@@ -57,7 +57,7 @@ go build -o reamd ./cmd/reamd
 
 ## Project status
 
-Go 1.25 is the approved minimum project toolchain. Goldmark is the Markdown parser and tcell is the TUI library. The application uses `uniseg` for display width and `x/term` for terminal detection. The clipboard package, installation method, and release process have not been selected. The distribution goal is to provide ready-to-run binaries so users do not need to install Go themselves.
+Go 1.25 is the approved minimum project toolchain. Goldmark is the Markdown parser and tcell is the TUI library. The application uses `uniseg` for display width, `x/term` for terminal detection, and `github.com/atotto/clipboard` behind an internal adapter for clipboard writes. Installation method and release process have not been selected. The distribution goal is to provide ready-to-run binaries so users do not need to install Go themselves.
 
 See the [technical analysis and MVP proposal](docs/markdown-terminal-reader-analysis.md) for the REA observations, design decisions, open questions, and acceptance criteria.
 
@@ -78,7 +78,7 @@ See the [development ticket checklists](docs/tickets/README.md) for agent-sized 
 **Pembaca Markdown read-only di terminal.** `reamd` membuka satu dokumen di terminal yang sedang digunakan, dapat digulir, lalu pengguna kembali ke shell setelah keluar.
 
 > [!NOTE]
-> `reamd` masih dalam pengembangan awal. Render inti CommonMark dan sebagian GFM, pemuatan file, TUI yang dapat digulir, output teks biasa ke pipe, dan navigasi link sudah tersedia. Pekerjaan tema dan dukungan clipboard belum diimplementasikan.
+> `reamd` masih dalam pengembangan awal. Render inti CommonMark dan sebagian GFM, pemuatan file, TUI yang dapat digulir, output teks biasa ke pipe, navigasi link, serta seleksi/copy teks sudah tersedia. Pekerjaan tema masih berlangsung. Smoke test clipboard baru teramati pada Windows Terminal.
 
 ## Penggunaan
 
@@ -96,7 +96,7 @@ reamd --version
 
 Jika dijalankan tanpa argumen, `reamd` menampilkan bantuan dan contoh penggunaan lalu keluar dengan kode 0. MVP menerima satu path file per sesi dan belum membaca stdin. Di terminal interaktif, aplikasi membuka TUI read-only; jika output dialihkan atau di-pipe, aplikasi mencetak teks biasa tanpa ANSI.
 
-Tombol yang tersedia saat ini: `Up`/`Down` dan `j`/`k` menggulir satu baris, `PageUp`/`PageDown` menggulir satu layar, `Home`/`End` menuju awal atau akhir, `Tab`/`Shift+Tab` memfokuskan link, `Enter` mengaktifkan link terpilih, `?` membuka bantuan, dan `q` atau `Esc` keluar. Pada terminal dengan dukungan mouse, wheel menggulir dan scrollbar dapat diklik atau di-drag; klik link mengaktifkannya. Link HTTP(S) membuka browser default hanya setelah aktivasi; anchor melompat ke heading. Terminal di bawah 40 kolom x 10 baris menampilkan pesan untuk memperbesar terminal.
+Tombol yang tersedia saat ini: `Up`/`Down` dan `j`/`k` menggulir satu baris, `PageUp`/`PageDown` menggulir satu layar, `Home`/`End` menuju awal atau akhir, `Tab`/`Shift+Tab` memfokuskan link, `Enter` mengaktifkan link terpilih, `Ctrl+C` menyalin teks pilihan, `?` membuka bantuan, dan `q` atau `Esc` keluar. Pada terminal dengan dukungan mouse, drag memilih teks yang terlihat, wheel menggulir, dan scrollbar dapat diklik atau di-drag; klik link mengaktifkannya. Link HTTP(S) membuka browser default hanya setelah aktivasi; anchor melompat ke heading. Terminal di bawah 40 kolom x 10 baris menampilkan pesan untuk memperbesar terminal.
 
 ## Status saat ini
 
@@ -130,7 +130,7 @@ go build -o reamd ./cmd/reamd
 
 ## Status proyek
 
-Go 1.25 adalah versi minimum toolchain proyek yang disetujui. Goldmark menjadi parser Markdown dan tcell library TUI. Aplikasi memakai `uniseg` untuk lebar tampilan dan `x/term` untuk deteksi terminal. Package clipboard, cara instalasi, serta proses rilis belum ditentukan. Tujuan distribusinya adalah menyediakan binary siap pakai agar pengguna tidak perlu memasang Go sendiri.
+Go 1.25 adalah versi minimum toolchain proyek yang disetujui. Goldmark menjadi parser Markdown dan tcell library TUI. Aplikasi memakai `uniseg` untuk lebar tampilan, `x/term` untuk deteksi terminal, serta `github.com/atotto/clipboard` di balik adapter internal untuk menulis ke clipboard. Cara instalasi dan proses rilis belum ditentukan. Tujuan distribusinya adalah menyediakan binary siap pakai agar pengguna tidak perlu memasang Go sendiri.
 
 Lihat [analisis teknis dan rancangan MVP](docs/markdown-terminal-reader-analysis.md) untuk hasil observasi REA, keputusan rancangan, pertanyaan terbuka, dan kriteria penerimaan.
 

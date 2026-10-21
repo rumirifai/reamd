@@ -3,6 +3,7 @@ module github.com/rumirifai/reamd
 go 1.25.0
 
 require (
+	github.com/atotto/clipboard v0.1.4
 	github.com/gdamore/tcell/v2 v2.13.10
 	github.com/rivo/uniseg v0.4.7
 	github.com/yuin/goldmark v1.8.6

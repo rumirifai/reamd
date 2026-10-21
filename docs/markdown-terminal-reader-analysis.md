@@ -41,7 +41,7 @@ Capture hanya memuat halaman awal dan sample bawaan. Tombol, upload file, peruba
 | Parser dan TUI | Goldmark dan `tcell/v2` disetujui untuk implementasi setelah evaluasi Ticket 01 |
 | Toolchain minimum | Go 1.25 disetujui; pasangan patch minimum dependency transitif yang diperiksa dicatat di evaluasi stack |
 | Linkify dan browser | URL/email polos dikenali sebagai Linkify; helper `github.com/pkg/browser` disetujui dengan validasi HTTP(S) dan aktivasi eksplisit |
-| Clipboard | Abstraksi yang mengembalikan error; package produksi final belum dipilih |
+| Clipboard | Adapter internal dengan error; pengguna menyetujui `github.com/atotto/clipboard` sebagai implementasi produksi pada Ticket 09 |
 | Distribusi | Sasaran: pengguna memasang melalui command terminal dan menjalankan aplikasi tanpa setup developer |
 
 Spesifikasi command dan kontrol TUI yang telah dikonfirmasi tersedia di [command-spec.md](command-spec.md). Kriteria penerimaan dan fixture untuk memeriksa seluruh batas MVP tersedia di [acceptance-criteria.md](acceptance-criteria.md).
@@ -98,7 +98,9 @@ AST (*Abstract Syntax Tree*) adalah struktur data yang mewakili elemen Markdown,
 
 ### Kandidat bahasa pemrograman
 
-Go dipilih sebagai bahasa implementasi; minimum toolchain Go 1.25 telah disetujui. Goldmark disetujui sebagai parser Markdown dan `tcell/v2` sebagai framework TUI berdasarkan bukti spike Ticket 01. Program dapat dibuild menjadi binary untuk sistem operasi sasaran, sehingga pengguna tidak perlu memasang Go untuk menjalankan binary yang sudah didistribusikan. Tampilan akhir tetap ditentukan oleh desain TUI, layout terminal, dan parser. Package clipboard produksi final belum dipilih.
+Go dipilih sebagai bahasa implementasi; minimum toolchain Go 1.25 telah disetujui. Goldmark disetujui sebagai parser Markdown dan `tcell/v2` sebagai framework TUI berdasarkan bukti spike Ticket 01. Program dapat dibuild menjadi binary untuk sistem operasi sasaran, sehingga pengguna tidak perlu memasang Go untuk menjalankan binary yang sudah didistribusikan. Tampilan akhir tetap ditentukan oleh desain TUI, layout terminal, dan parser. Pada Ticket 09, pengguna menyetujui `github.com/atotto/clipboard` di balik adapter internal yang mengembalikan error; persetujuan dependency tidak dengan sendirinya membuktikan clipboard OS lulus smoke test.
+
+Keputusan Ticket 09: clipboard sistem ditulis sebagai plain text melalui adapter `internal/clipboard`, dengan `github.com/atotto/clipboard` sebagai package produksi. Test aplikasi menyuntikkan adapter tiruan untuk menguji sukses, tidak tersedia, dan gagal tanpa mengakses clipboard pengguna.
 
 ## Risiko teknis dan mitigasi
 

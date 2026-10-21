@@ -17,6 +17,7 @@ import (
 	"github.com/rivo/uniseg"
 
 	"github.com/rumirifai/reamd/internal/cli"
+	"github.com/rumirifai/reamd/internal/clipboard"
 	"github.com/rumirifai/reamd/internal/layout"
 )
 
@@ -40,9 +41,13 @@ type App struct {
 	focused           int
 	message           string
 	opener            func(string) error
+	clipboard         clipboard.Writer
 	mouseEnabled      bool
 	draggingScrollbar bool
 	dragGrab          int
+	mouseDown         bool
+	mouseDownLink     string
+	selection         textSelection
 }
 
 // New creates a reader for one document. The theme is validated by the CLI and
@@ -53,7 +58,12 @@ func New(path string, theme cli.Theme, source []string) *App {
 
 // NewWithOpener allows browser activation to be verified without launching an OS browser.
 func NewWithOpener(path string, theme cli.Theme, source []string, opener func(string) error) *App {
-	a := &App{path: path, theme: theme, source: source, zoom: 100, focused: -1, opener: opener}
+	return NewWithAdapters(path, theme, source, opener, clipboard.System{})
+}
+
+// NewWithAdapters injects operating-system services for deterministic tests.
+func NewWithAdapters(path string, theme cli.Theme, source []string, opener func(string) error, clipboardWriter clipboard.Writer) *App {
+	a := &App{path: path, theme: theme, source: source, zoom: 100, focused: -1, opener: opener, clipboard: clipboardWriter}
 	a.Resize(80, 24)
 	return a
 }
@@ -163,6 +173,10 @@ func (a *App) setZoom(zoom int) {
 
 // HandleKey applies one key event. It reports whether the app should exit.
 func (a *App) HandleKey(ev *tcell.EventKey) bool {
+	if ev.Key() == tcell.KeyCtrlC || (ev.Key() == tcell.KeyRune && ev.Modifiers()&tcell.ModCtrl != 0 && ev.Rune() == 'c') {
+		a.copySelection()
+		return false
+	}
 	if ev.Key() == tcell.KeyTab || ev.Key() == tcell.KeyBacktab {
 		a.moveFocus(ev.Key() == tcell.KeyBacktab || ev.Modifiers()&tcell.ModShift != 0)
 		return false
@@ -274,6 +288,19 @@ func (a *App) drawDocument(screen tcell.Screen) {
 	for row, line := range a.view.Visible(a.doc.Lines) {
 		style := a.styleForLine(line.Text)
 		screen.PutStrStyled(left, row, line.Text, style)
+		docRow := a.view.Offset + row
+		x := left
+		graphemes := uniseg.NewGraphemes(line.Text)
+		for graphemes.Next() {
+			width := graphemes.Width()
+			if a.selection.contains(docRow, x-left, width) {
+				cluster := []rune(graphemes.Str())
+				if len(cluster) > 0 {
+					screen.SetContent(x, row, cluster[0], cluster[1:], style.Reverse(true))
+				}
+			}
+			x += width
+		}
 		for _, link := range line.Links {
 			linkStyle := style.Underline(true)
 			if index >= 0 && a.linkAt(index, a.view.Offset+row, link) {
@@ -284,7 +311,11 @@ func (a *App) drawDocument(screen tcell.Screen) {
 			for graphemes.Next() {
 				cluster := []rune(graphemes.Str())
 				if x < left+link.End && x+graphemes.Width() > left+link.Start && len(cluster) > 0 {
-					screen.SetContent(x, row, cluster[0], cluster[1:], linkStyle)
+					cellStyle := linkStyle
+					if a.selection.contains(docRow, x-left, graphemes.Width()) {
+						cellStyle = cellStyle.Reverse(true)
+					}
+					screen.SetContent(x, row, cluster[0], cluster[1:], cellStyle)
 				}
 				x += graphemes.Width()
 			}
@@ -377,6 +408,31 @@ func (a *App) HandleMouse(ev *tcell.EventMouse) {
 	}
 	x, y := ev.Position()
 	buttons := ev.Buttons()
+	if a.draggingScrollbar {
+		if buttons&tcell.Button1 != 0 {
+			trackHeight := a.height - 1
+			_, thumbSize := a.view.ScrollbarThumb(trackHeight)
+			a.view.ScrollToTrack(y-a.dragGrab+thumbSize/2, trackHeight)
+			return
+		}
+		a.draggingScrollbar = false
+	}
+	if a.mouseDown {
+		if buttons&tcell.Button1 != 0 {
+			if pos, ok := a.documentPosition(x, y); ok && pos != a.selection.anchor {
+				a.selection.active = pos
+				a.selection.set = true
+				a.message = ""
+			}
+			return
+		}
+		if !a.selection.set && a.mouseDownLink != "" && a.linkTargetAt(x, y) == a.mouseDownLink {
+			a.activate(a.mouseDownLink)
+		}
+		a.mouseDown = false
+		a.mouseDownLink = ""
+		return
+	}
 	if buttons&tcell.WheelUp != 0 {
 		a.view.ScrollLines(-3)
 		return
@@ -386,7 +442,6 @@ func (a *App) HandleMouse(ev *tcell.EventMouse) {
 		return
 	}
 	if buttons&tcell.Button1 == 0 {
-		a.draggingScrollbar = false
 		return
 	}
 	trackHeight := a.height - 1
@@ -409,25 +464,65 @@ func (a *App) HandleMouse(ev *tcell.EventMouse) {
 		}
 		return
 	}
-	if a.draggingScrollbar {
-		_, thumbSize := a.view.ScrollbarThumb(trackHeight)
-		a.view.ScrollToTrack(y-a.dragGrab+thumbSize/2, trackHeight)
+	pos, ok := a.documentPosition(x, y)
+	if !ok {
 		return
 	}
-	if y < 0 || y >= a.height-1 {
-		return
+	a.mouseDown = true
+	a.selection = textSelection{anchor: pos, active: pos}
+	a.mouseDownLink = a.linkTargetAt(x, y)
+	a.message = ""
+}
+
+func (a *App) documentPosition(x, y int) (cellPosition, bool) {
+	if y < 0 || y >= a.height-1 || a.help || a.width < MinWidth || a.height < MinHeight {
+		return cellPosition{}, false
 	}
 	left := (a.width - a.doc.Width) / 2
 	row := a.view.Offset + y
 	if row < 0 || row >= len(a.doc.Lines) {
-		return
+		return cellPosition{}, false
+	}
+	lineWidth := a.doc.Lines[row].Width
+	if x < left || x >= left+lineWidth {
+		return cellPosition{}, false
+	}
+	return cellPosition{row: row, col: x - left}, true
+}
+
+func (a *App) linkTargetAt(x, y int) string {
+	left := (a.width - a.doc.Width) / 2
+	row := a.view.Offset + y
+	if row < 0 || row >= len(a.doc.Lines) {
+		return ""
 	}
 	for _, link := range a.doc.Lines[row].Links {
 		if x >= left+link.Start && x < left+link.End {
-			a.activate(link.Target)
-			return
+			return link.Target
 		}
 	}
+	return ""
+}
+
+func (a *App) copySelection() {
+	if !a.selection.set {
+		a.message = "Select text with the mouse before copying."
+		return
+	}
+	text := a.selection.plainText(a.doc.Lines)
+	if text == "" {
+		a.message = "Select text with the mouse before copying."
+		return
+	}
+	if a.clipboard == nil {
+		a.message = "Clipboard is unavailable; selection is preserved."
+		return
+	}
+	if err := a.clipboard.WriteText(text); err != nil {
+		a.message = "Cannot copy to clipboard: " + layout.Sanitize(err.Error())
+		return
+	}
+	a.message = "Copied selection to clipboard."
 }
 
 func (a *App) drawScrollbar(screen tcell.Screen) {
@@ -529,11 +624,11 @@ func (a *App) drawHelp(screen tcell.Screen) {
 		{"Up / Down, j / k", "Scroll one line"},
 		{"PageUp / PageDown", "Scroll one screen"},
 		{"Home / End", "Jump to start/end"},
-		{"Tab / Shift+Tab", "Focus next / previous link"},
-		{"Enter", "Activate focused link"},
+		{"Tab / Shift+Tab / Enter", "Focus / activate link"},
+		{"Mouse drag", "Select visible text"},
+		{"Ctrl+C", "Copy selected text"},
 		{"+ / -, Ctrl+0", "Zoom layout, reset to 100%"},
-		{"?", "Close this help"},
-		{"q / Esc", "Quit"},
+		{"? / q / Esc", "Close help / quit"},
 	}
 	screen.PutStrStyled(0, 0, "Keys", title)
 	for i, item := range lines {

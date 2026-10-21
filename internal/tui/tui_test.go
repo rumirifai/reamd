@@ -11,6 +11,7 @@ import (
 	"github.com/gdamore/tcell/v2"
 
 	"github.com/rumirifai/reamd/internal/cli"
+	"github.com/rumirifai/reamd/internal/clipboard"
 	"github.com/rumirifai/reamd/internal/document"
 	"github.com/rumirifai/reamd/internal/layout"
 )
@@ -246,6 +247,7 @@ func TestSimulatedMouseActivatesOnlyClickedLink(t *testing.T) {
 		done <- runInitializedWithOpener(screen, "links.md", cli.ThemeAuto, source, false, func(url string) error { calls = append(calls, url); return nil })
 	}()
 	baseScreen.InjectMouse(1, 0, tcell.Button1, tcell.ModNone)
+	baseScreen.InjectMouse(1, 0, tcell.ButtonNone, tcell.ModNone)
 	baseScreen.InjectKey(tcell.KeyRune, 'q', tcell.ModNone)
 	select {
 	case err := <-done:
@@ -308,6 +310,143 @@ func TestMouseEventsIgnoredWithoutCapabilityAndKeyboardRemainsAvailable(t *testi
 	if enableMouse(screen) || screen.enabled {
 		t.Fatal("mouse input enabled without reported terminal support")
 	}
+}
+
+func TestDragSelectionMapsDocumentAreaAcrossWrappedUnicodeLine(t *testing.T) {
+	app := New("wrapped.md", cli.ThemeAuto, []string{strings.Repeat("a", 38) + "中文tail"})
+	app.Resize(40, 10)
+	app.mouseEnabled = true
+	if len(app.doc.Lines) < 2 {
+		t.Fatalf("layout lines = %d, want wrapped content", len(app.doc.Lines))
+	}
+	app.HandleMouse(tcell.NewEventMouse(38, 0, tcell.Button1, tcell.ModNone))
+	app.HandleMouse(tcell.NewEventMouse(2, 1, tcell.Button1, tcell.ModNone))
+	app.HandleMouse(tcell.NewEventMouse(2, 1, tcell.ButtonNone, tcell.ModNone))
+	if got, want := app.selection.plainText(app.doc.Lines), "中\n文t"; got != want {
+		t.Fatalf("wrapped selection = %q, want %q", got, want)
+	}
+	if app.selection.anchor.row != 0 || app.selection.active.row != 1 {
+		t.Fatalf("selection rows = %d..%d, want 0..1", app.selection.anchor.row, app.selection.active.row)
+	}
+}
+
+func TestDraggingAcrossLinkSelectsWithoutActivating(t *testing.T) {
+	var activated []string
+	app := NewWithOpener("links.md", cli.ThemeAuto, []string{"\x1chttps://example.com\x1cOpen link\x1c (https://example.com)"}, func(target string) error {
+		activated = append(activated, target)
+		return nil
+	})
+	app.Resize(60, 10)
+	app.mouseEnabled = true
+	app.HandleMouse(tcell.NewEventMouse(0, 0, tcell.Button1, tcell.ModNone))
+	app.HandleMouse(tcell.NewEventMouse(9, 0, tcell.Button1, tcell.ModNone))
+	app.HandleMouse(tcell.NewEventMouse(9, 0, tcell.ButtonNone, tcell.ModNone))
+	if len(activated) != 0 {
+		t.Fatalf("drag activated link: %v", activated)
+	}
+	if !app.selection.set {
+		t.Fatal("drag over link did not leave a selection")
+	}
+}
+
+func TestSelectionOnlyStartsInDocumentAreaAndEmptyCopyKeepsTUIOpen(t *testing.T) {
+	app := New("doc.md", cli.ThemeAuto, []string{"document", "next"})
+	app.Resize(40, 10)
+	app.mouseEnabled = true
+	app.HandleMouse(tcell.NewEventMouse(10, 8, tcell.Button1, tcell.ModNone))
+	app.HandleMouse(tcell.NewEventMouse(10, 8, tcell.ButtonNone, tcell.ModNone))
+	if app.selection.set {
+		t.Fatal("click outside document created a selection")
+	}
+	if quit := app.HandleKey(key(tcell.KeyCtrlC, 0)); quit {
+		t.Fatal("Ctrl+C exited the TUI without a selection")
+	}
+	if !strings.Contains(app.message, "Select text") {
+		t.Fatalf("empty selection message = %q", app.message)
+	}
+}
+
+func TestCtrlCCopiesRenderedUnicodeWithoutControlSequences(t *testing.T) {
+	doc := document.New("controls.md", "café 中文 🙂 before\x1b[2J after")
+	originalLines := append([]string(nil), doc.Lines...)
+	writer := &fakeClipboard{}
+	app := NewWithAdapters(doc.Path, cli.ThemeAuto, doc.Lines, func(string) error { return nil }, writer)
+	app.Resize(80, 10)
+	app.mouseEnabled = true
+	line := app.doc.Lines[0]
+	width := line.Width
+	app.HandleMouse(tcell.NewEventMouse(0, 0, tcell.Button1, tcell.ModNone))
+	app.HandleMouse(tcell.NewEventMouse(width-1, 0, tcell.Button1, tcell.ModNone))
+	app.HandleMouse(tcell.NewEventMouse(width-1, 0, tcell.ButtonNone, tcell.ModNone))
+	if quit := app.HandleKey(key(tcell.KeyCtrlC, 0)); quit {
+		t.Fatal("Ctrl+C exited after copying")
+	}
+	if writer.text == "" || !strings.Contains(writer.text, "café 中文 🙂") || !strings.Contains(writer.text, "^[[2J") {
+		t.Fatalf("clipboard text lacks rendered Unicode/control notation: %q", writer.text)
+	}
+	if strings.ContainsRune(writer.text, '\x1b') || strings.Contains(writer.text, "\x1b[") {
+		t.Fatalf("clipboard contains active terminal control: %q", writer.text)
+	}
+	if !strings.Contains(app.message, "Copied selection") {
+		t.Fatalf("copy success message = %q", app.message)
+	}
+	if strings.Join(doc.Lines, "\n") != strings.Join(originalLines, "\n") {
+		t.Fatal("selection or copy changed the source document")
+	}
+}
+
+func TestDrawShowsSelectionWithReverseVideo(t *testing.T) {
+	app := New("doc.md", cli.ThemeAuto, []string{"visible text"})
+	app.Resize(40, 10)
+	app.selection = textSelection{anchor: cellPosition{row: 0, col: 0}, active: cellPosition{row: 0, col: 3}, set: true}
+	screen := newScreen(t, 40, 10)
+	app.Draw(screen)
+	screen.Show()
+	cells, _, _ := screen.GetContents()
+	_, _, attrs := cells[0].Style.Decompose()
+	if attrs&tcell.AttrReverse == 0 {
+		t.Fatal("selected text has no visible reverse-video indicator")
+	}
+}
+
+func TestClipboardUnavailableOrFailurePreservesSelectionAndTUI(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		writer *fakeClipboard
+		want   string
+	}{
+		{name: "unavailable", want: "Clipboard is unavailable"},
+		{name: "failure", writer: &fakeClipboard{err: errors.New("clipboard denied")}, want: "Cannot copy to clipboard"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var writer clipboard.Writer
+			if tc.writer != nil {
+				writer = tc.writer
+			}
+			app := NewWithAdapters("doc.md", cli.ThemeAuto, []string{"copy me"}, func(string) error { return nil }, writer)
+			app.Resize(40, 10)
+			app.selection = textSelection{anchor: cellPosition{row: 0, col: 0}, active: cellPosition{row: 0, col: 3}, set: true}
+			if quit := app.HandleKey(key(tcell.KeyCtrlC, 0)); quit {
+				t.Fatal("Ctrl+C exited after clipboard error")
+			}
+			if !app.selection.set || app.selection.plainText(app.doc.Lines) != "copy" {
+				t.Fatalf("selection was not preserved: %#v", app.selection)
+			}
+			if !strings.Contains(app.message, tc.want) {
+				t.Fatalf("clipboard message = %q, want %q", app.message, tc.want)
+			}
+		})
+	}
+}
+
+type fakeClipboard struct {
+	text string
+	err  error
+}
+
+func (f *fakeClipboard) WriteText(text string) error {
+	f.text = text
+	return f.err
 }
 
 func TestDrawScrollbarThumbAtViewportPosition(t *testing.T) {
@@ -460,6 +599,9 @@ func TestDrawHelp(t *testing.T) {
 	screen.Show()
 	if !screenContains(screen, "PageUp / PageDown") {
 		t.Fatal("help panel not drawn")
+	}
+	if !screenContains(screen, "Mouse drag") || !screenContains(screen, "Ctrl+C") {
+		t.Fatal("help panel did not show selection and copy bindings")
 	}
 }
 
