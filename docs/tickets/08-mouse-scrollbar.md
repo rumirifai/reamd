@@ -4,7 +4,7 @@
 
 **Blocked by:** 02, Bangun CLI dan vertical slice TUI.
 
-**Status:** in-progress
+**Status:** done
 
 **Acuan:** Fase 5 di `docs/development-workflow.md`; `AC-MOUSE` dan `AC-PLATFORM`.
 
@@ -16,4 +16,6 @@
 
 **Bukti otomatis:** test mencakup wheel naik/turun, klik track di kedua ujung, posisi dan ukuran thumb, drag thumb, penolakan event mouse saat kapabilitas tidak tersedia, fallback navigasi keyboard, serta aktivasi link dengan mouse pada screen simulasi yang melaporkan dukungan mouse.
 
-**Smoke test manual:** belum dijalankan. Runner session ini tidak menyediakan terminal desktop interaktif yang dapat menerima input wheel/drag manual; OS dan terminal nyata belum dapat dicatat sebagai hasil pengamatan.
+**Smoke test manual:** pengguna melaporkan telah menjalankan seluruh langkah pengujian yang diberikan, termasuk pengujian pada terminal dengan mouse dan pemeriksaan fallback keyboard, tanpa menemukan keanehan atau error. OS dan nama/versi terminal tidak disertakan dalam laporan, sehingga detail lingkungan tidak dapat dicatat.
+
+**Hasil:** checklist Ticket 08 terpenuhi berdasarkan test otomatis dan laporan smoke test manual dari pengguna.
