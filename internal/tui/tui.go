@@ -186,16 +186,18 @@ func (a *App) HandleKey(ev *tcell.EventKey) bool {
 		return false
 	}
 	if ev.Key() == tcell.KeyRune {
-		if ev.Modifiers()&tcell.ModCtrl != 0 && ev.Rune() == '0' {
-			a.setZoom(100)
-			return false
-		}
 		switch ev.Rune() {
+		case '=':
+			a.setZoom(a.zoom + 10)
+			return false
 		case '+':
 			a.setZoom(a.zoom + 10)
 			return false
 		case '-':
 			a.setZoom(a.zoom - 10)
+			return false
+		case '0':
+			a.setZoom(100)
 			return false
 		case 'q':
 			return true
@@ -627,7 +629,7 @@ func (a *App) drawHelp(screen tcell.Screen) {
 		{"Tab / Shift+Tab / Enter", "Focus / activate link"},
 		{"Mouse drag", "Select visible text"},
 		{"Ctrl+C", "Copy selected text"},
-		{"+ / -, Ctrl+0", "Zoom layout, reset to 100%"},
+		{"= / + / - / 0", "In / out / reset"},
 		{"? / q / Esc", "Close help / quit"},
 	}
 	screen.PutStrStyled(0, 0, "Keys", title)
@@ -646,9 +648,9 @@ func (a *App) drawTooSmall(screen tcell.Screen) {
 }
 
 func (a *App) drawFooter(screen tcell.Screen) {
-	right := fmt.Sprintf("?help +/- %d%% q quit", a.zoom)
+	right := fmt.Sprintf("? =,+,-,0 %d%% q quit", a.zoom)
 	if a.help {
-		right = fmt.Sprintf("?close +/- %d%% q quit", a.zoom)
+		right = fmt.Sprintf("?close =,+,-,0 %d%% q quit", a.zoom)
 	}
 	screen.PutStrStyled(0, a.height-1, footerText(a.path, right, a.width), a.baseStyle())
 }

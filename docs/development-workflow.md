@@ -116,7 +116,7 @@ Implementasikan parser terhadap model dokumen dan layout terminal. Gunakan fixtu
 Kerjakan perilaku interaktif dalam unit kecil dan hubungkan masing-masing dengan acceptance criteria:
 
 1. Binding keyboard dan panel bantuan.
-2. Zoom 70%-150%, langkah 10%, alternatif `+`/`-`, reset `Ctrl+0`.
+2. Zoom 70%-150%, langkah 10%, `=`/`+` untuk memperbesar, `-` untuk memperkecil, dan `0` untuk reset.
 3. Resize, tabel responsif, dan tema `auto`, `dark`, `light`, `transparent` dengan `NO_COLOR`.
 4. Mouse wheel dan scrollbar.
 5. Seleksi teks dan copy teks hasil render ke clipboard dengan `Ctrl+C`.

@@ -44,8 +44,8 @@ Terkait: [spesifikasi command](command-spec.md) dan [analisis teknis](markdown-t
 - `?` menampilkan dan menutup panel bantuan pintasan.
 - Perubahan ukuran terminal saat dokumen terbuka langsung menata ulang konten.
 - TUI dapat beroperasi dengan ukuran 40 kolom × 10 baris atau lebih. Di bawah ukuran itu, tampilkan pesan singkat agar terminal diperbesar dan cara keluar tetap tersedia.
-- Zoom dimulai dari 100%, berubah 10 poin per langkah, dibatasi 70%-150%, dan `Ctrl+0` mengembalikan 100%.
-- `Ctrl+Plus`/`Ctrl+-` bekerja saat terminal meneruskan kombinasi tersebut; `+`/`-` menjadi alternatif. Zoom mengubah kepadatan dan wrapping layout, bukan ukuran font emulator terminal.
+- Zoom dimulai dari 100%, berubah 10 poin per langkah, dibatasi 70%-150%, dan tombol `0` tanpa modifier mengembalikan 100%.
+- `=` memperbesar tanpa memerlukan Shift, `+` tetap menjadi alias, dan `-` memperkecil. `Ctrl+Plus`/`Ctrl+-` dapat menjadi alternatif jika terminal meneruskan kombinasi tersebut. Zoom mengubah kepadatan dan wrapping layout, bukan ukuran font emulator terminal.
 
 ### AC-MOUSE: mouse, link, seleksi, dan clipboard
 

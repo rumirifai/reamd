@@ -34,7 +34,7 @@ Capture hanya memuat halaman awal dan sample bawaan. Tombol, upload file, peruba
 | Input | Tepat satu path file; stdin tidak termasuk MVP |
 | Command tanpa argumen | Menampilkan bantuan dan contoh penggunaan |
 | Tabel lebar | Rekomendasi: tabel biasa jika muat, tampilan bertumpuk jika terminal terlalu sempit |
-| Zoom | Mulai 100%, langkah 10%, batas 70%-150%, reset `Ctrl+0`; mengubah layout aplikasi, bukan ukuran font terminal |
+| Zoom | Mulai 100%, langkah 10%, batas 70%-150%, `=`/`+` memperbesar, `-` memperkecil, `0` mereset; mengubah layout aplikasi, bukan ukuran font terminal |
 | Tema | `auto` (default), `dark`, `light`, `transparent`; rincian ada di spesifikasi command |
 | Bahasa | Dokumen kerja dalam Bahasa Indonesia; README untuk pengguna GitHub disiapkan dalam Bahasa Inggris dan Bahasa Indonesia |
 | Bahasa pemrograman | Go dipilih sebagai bahasa implementasi |
@@ -75,9 +75,9 @@ Alur utama:
 2. Aplikasi membaca file dan menampilkan dokumen dalam layar TUI pada terminal yang sama.
 3. Pengguna menggulir dengan keyboard atau mouse; `q`/`Esc` menutup tampilan dan mengembalikan kontrol ke shell.
 4. Pengguna dapat menavigasi link dengan keyboard atau mouse, memilih teks dan menyalinnya, serta menggunakan scrollbar mouse di terminal yang mendukungnya.
-5. Pengguna dapat memperbesar atau memperkecil **skala tampilan di dalam aplikasi** dengan kombinasi zoom yang ditetapkan, misalnya `Ctrl++` dan `Ctrl+-`, jika terminal meneruskan tombol tersebut.
+5. Pengguna dapat memperbesar atau memperkecil **skala tampilan di dalam aplikasi** dengan tombol `=`/`+` dan `-`; `=` dan `-` tidak memerlukan modifier. Kombinasi Ctrl dapat menjadi alternatif jika terminal meneruskannya.
 
-Zoom TUI tidak dapat menjamin perubahan ukuran font terminal. Ukuran font dikontrol aplikasi terminal dan pintasan zoom-nya bervariasi. Zoom `reamd` berarti menyesuaikan penekanan heading, kepadatan, jarak, dan wrapping konten dalam grid karakter yang sama. Dukungan kombinasi `Ctrl++` perlu diuji karena beberapa terminal memakai atau tidak meneruskan kombinasi itu. Sediakan tombol alternatif seperti `+` dan `-` bila perlu.
+Zoom TUI tidak dapat menjamin perubahan ukuran font terminal. Ukuran font dikontrol aplikasi terminal dan pintasan zoom-nya bervariasi. Zoom `reamd` berarti menyesuaikan penekanan heading, kepadatan, jarak, dan wrapping konten dalam grid karakter yang sama. Binding utama `=`/`-` tidak membutuhkan modifier; `+` dan kombinasi Ctrl tetap menjadi alternatif bila terminal meneruskannya.
 
 Saat stdout bukan terminal interaktif, aplikasi mengeluarkan render teks biasa tanpa kontrol TUI atau warna secara default. Ini membuat output dapat dipipe ke program lain dan disimpan ke file. Membaca dokumen dari stdin tidak termasuk MVP.
 

@@ -85,12 +85,13 @@ Perilaku pipe berlaku untuk output. Input stdin tetap di luar cakupan MVP.
 | `?` | Tampilkan atau tutup panel bantuan pintasan. |
 | `Tab` / `Shift+Tab` | Pindah fokus ke link berikutnya/sebelumnya. |
 | `Enter` | Aktifkan link yang sedang fokus. Link internal melompat ke heading; link web membuka browser default jika protokolnya HTTP atau HTTPS. |
-| `Ctrl+Plus` / `Ctrl+-` | Naikkan/turunkan zoom satu langkah, jika kombinasi tombol diteruskan terminal. |
-| `+` / `-` | Alternatif untuk menaikkan/menurunkan zoom. |
-| `Ctrl+0` | Kembalikan zoom ke nilai awal. |
+| `=` / `+` | Naikkan zoom satu langkah. `=` tidak memerlukan Shift; `+` tetap tersedia sebagai alias. |
+| `-` | Turunkan zoom satu langkah. |
+| `0` | Kembalikan zoom ke 100% tanpa modifier. |
+| `Ctrl+Plus` / `Ctrl+-` | Alternatif untuk menaikkan/menurunkan zoom jika kombinasi tombol diteruskan terminal. |
 | `Ctrl+C` | Salin teks yang sedang dipilih ke clipboard sistem; jika tidak ada pilihan, tampilkan petunjuk dan jangan keluar. |
 
-Terminal tertentu menangani kombinasi Ctrl sendiri atau mengodekan `Ctrl+Plus` dengan cara berbeda. Karena itu, `+` dan `-` disediakan sebagai alternatif. Bantuan TUI perlu menjelaskan binding yang tersedia.
+Terminal tertentu menangani kombinasi Ctrl sendiri atau mengodekannya dengan cara berbeda. Karena itu, `=` dan `-` menjadi binding utama yang tidak memerlukan Ctrl atau Shift; `+` dan kombinasi Ctrl tetap menjadi alternatif.
 
 ### Mouse dan clipboard
 
@@ -105,10 +106,10 @@ Terminal tertentu menangani kombinasi Ctrl sendiri atau mengodekan `Ctrl+Plus` d
 ### Zoom
 
 - Nilai awal: 100%.
-- Satu tekanan `+` atau `Ctrl+Plus`: naik 10 poin persentase.
-- Satu tekanan `-` atau `Ctrl+-`: turun 10 poin persentase.
+- Satu tekanan `=` atau `+`: naik 10 poin persentase. `=` tidak memerlukan Shift.
+- Satu tekanan `-`: turun 10 poin persentase.
 - Batas: 70% sampai 150%.
-- `Ctrl+0`: reset ke 100%.
+- `0`: reset ke 100% tanpa modifier.
 
 Zoom mengubah kepadatan layout, penekanan heading, jarak, dan wrapping di dalam grid karakter terminal. Zoom **tidak** mengubah ukuran font terminal sebenarnya. Saat mencapai batas, tekanan tambahan tidak mengubah nilai lebih jauh.
 

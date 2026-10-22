@@ -159,13 +159,21 @@ func TestNoColorRetainsStructuralHierarchy(t *testing.T) {
 func TestZoomBoundsStepResetAndReflow(t *testing.T) {
 	app := New("doc.md", cli.ThemeAuto, []string{"a long line that should wrap differently as zoom increases"})
 	app.Resize(40, 10)
-	app.HandleKey(runeKey('+'))
+	app.HandleKey(runeKey('='))
 	if app.Zoom() != 110 || app.doc.Width != 36 {
+		t.Fatalf("zoom =: zoom=%d width=%d", app.Zoom(), app.doc.Width)
+	}
+	app.HandleKey(runeKey('+'))
+	if app.Zoom() != 120 || app.doc.Width != 33 {
 		t.Fatalf("zoom +: zoom=%d width=%d", app.Zoom(), app.doc.Width)
 	}
-	app.HandleKey(tcell.NewEventKey(tcell.KeyRune, '0', tcell.ModCtrl))
+	app.HandleKey(runeKey('-'))
+	if app.Zoom() != 110 {
+		t.Fatalf("zoom -: zoom=%d, want 110", app.Zoom())
+	}
+	app.HandleKey(runeKey('0'))
 	if app.Zoom() != 100 {
-		t.Fatalf("Ctrl+0 zoom = %d", app.Zoom())
+		t.Fatalf("0 zoom = %d", app.Zoom())
 	}
 	for i := 0; i < 5; i++ {
 		app.HandleKey(runeKey('-'))
