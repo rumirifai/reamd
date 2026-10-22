@@ -4,7 +4,7 @@
 
 **Blocked by:** 03, Render elemen inti CommonMark (Ticket 01 selesai).
 
-**Status:** in-progress
+**Status:** done
 
 **Acuan:** Fase 5 di `docs/development-workflow.md`; `AC-MOUSE`; `FX-004`.
 
@@ -16,8 +16,10 @@
 - [x] Kegagalan opener menampilkan pesan yang jelas dan membiarkan navigasi/keluar TUI tetap tersedia. **Dipindahkan dari checklist Ticket 01:** pesan error adalah acceptance TUI, belum diuji pada spike.
 - [x] Parsing, render, pemuatan, dan perpindahan fokus tidak memanggil opener; render lokal tidak membuat request jaringan.
 - [x] Test otomatis fixture FX-004, opener tiruan, fokus keyboard, aktivasi `Enter`, klik simulasi, protokol, dan kegagalan opener lulus.
-- [ ] Smoke test browser OS nyata setelah aktivasi eksplisit, mencatat OS, terminal, cara aktivasi, dan hasil sebenarnya. **Belum dijalankan.**
+- [x] Smoke test browser OS nyata setelah aktivasi eksplisit, mencatat OS, terminal, cara aktivasi, dan hasil sebenarnya.
 
-**Verifikasi:** uji fixture anchor dan gate aktivasi otomatis; smoke test browser manual mencatat OS, terminal, aktivasi, serta hasil sebenarnya.
+**Verifikasi:** test fixture anchor dan gate aktivasi otomatis lulus. Smoke test browser manual lulus di Windows Terminal.
 
-**Bukti implementasi:** model dokumen mempertahankan target link sebagai metadata privat yang dibuang saat layout teks biasa; layout memetakan rentang sel link, TUI menangani fokus/klik, dan opener hanya dipanggil dari aktivasi. Test FX-004 menguji anchor dan protokol tanpa membuka browser. `go test ./...` lulus pada pengujian implementasi; verifikasi final dicatat saat penyelesaian. Smoke test browser OS belum dijalankan, sehingga status ticket tetap `in-progress`.
+**Bukti implementasi:** model dokumen mempertahankan target link sebagai metadata privat yang dibuang saat layout teks biasa; layout memetakan rentang sel link, TUI menangani fokus/klik, dan opener hanya dipanggil dari aktivasi. Test FX-004 menguji anchor dan protokol tanpa membuka browser. `go test ./...`, `go vet ./...`, `go build ./...`, `gofmt -w cmd internal`, dan `git diff --check` lulus pada verifikasi implementasi.
+
+**Bukti smoke test manual:** Windows, Windows Terminal dengan PowerShell, 22 Oktober 2026. Pengguna menguji fokus link dengan `Tab` (anchor pada tekanan pertama dan link Dokumentasi setelah lima tekanan), mengaktifkan Dokumentasi dengan `Enter`, dan browser Chrome membuka `https://example.com/docs`. Setelah browser ditutup, TUI tetap berjalan. Pengguna juga melaporkan klik mouse mengaktifkan link. Screenshot menunjukkan fokus keyboard dan halaman browser yang terbuka. Hasil: PASS.

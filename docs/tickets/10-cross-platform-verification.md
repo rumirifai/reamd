@@ -4,9 +4,11 @@
 
 **Blocked by:** 04, 05, 06, 07, 08, dan 09 selesai.
 
-**Status:** blocked
+**Status:** ready-for-agent
 
 **Acuan:** Fase 6 di `docs/development-workflow.md`; seluruh `docs/acceptance-criteria.md`, khususnya `AC-PLATFORM`.
+
+**Status blocker:** Ticket 04, 05, 06, 07, 08, dan 09 berstatus `done`. Smoke test browser Ticket 07 dicatat di ticket tersebut: Windows Terminal/PowerShell di Windows, aktivasi keyboard `Tab` lima kali lalu `Enter`, Chrome membuka `https://example.com/docs`, TUI tetap berjalan setelah browser ditutup; pengguna juga mengonfirmasi klik mouse bekerja. Ticket 10 siap dimulai. Bukti ini hanya memenuhi smoke test link Ticket 07, bukan matriks verifikasi lintas platform Ticket 10.
 
 - [ ] Jalankan test otomatis parsing, layout, input file, sanitasi, help/version, status keluar, dan output non-TTY pada Windows, macOS, serta Linux.
 - [ ] Jalankan build/test CI pada ketiga OS dan catat hasil yang benar-benar diperoleh.
