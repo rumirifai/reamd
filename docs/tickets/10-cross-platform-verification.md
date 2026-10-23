@@ -4,7 +4,7 @@
 
 **Blocked by:** 04, 05, 06, 07, 08, dan 09 selesai.
 
-**Status:** in-progress
+**Status:** done
 
 **Acuan:** Fase 6 di `docs/development-workflow.md`; seluruh `docs/acceptance-criteria.md`, khususnya `AC-PLATFORM`.
 
@@ -14,7 +14,7 @@
 - [x] Jalankan build/test CI pada ketiga OS dan catat hasil yang benar-benar diperoleh.
 - [x] Jalankan test terminal/pseudo-terminal untuk keyboard, resize, exit, dan pemulihan terminal jika didukung stack terpilih.
 - [x] Smoke test Windows Terminal berdasarkan laporan smoke manual pengguna pada Ticket 06–09.
-- [ ] Smoke test Terminal.app pada macOS. **Belum diuji; pemilik proyek menerima ini sebagai blocker rilis yang terdokumentasi dan tidak menghalangi Ticket 11. Ini bukan hasil lulus. (23 Oktober 2026)**
+- [ ] Smoke test Terminal.app pada macOS. **Belum diuji; pemilik proyek menerima ini sebagai blocker rilis yang terdokumentasi dan tidak menghalangi Ticket 11 visual polish. Ini bukan hasil lulus. (23 Oktober 2026)**
 - [x] Smoke test GNOME Terminal pada Ubuntu WSL 2/WSLg berdasarkan laporan manual pengguna 23 Oktober 2026.
 - [x] Periksa tema, zoom, keyboard, resize, dan keluar normal pada Windows Terminal berdasarkan laporan Ticket 06.
 - [x] Periksa anchor, fokus link, pembukaan browser setelah aktivasi, dan kelanjutan TUI setelah browser ditutup di Windows Terminal berdasarkan laporan Ticket 07.

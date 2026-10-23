@@ -38,7 +38,8 @@ Checklist tugas agent per fase tersedia di [docs/tickets/README.md](tickets/READ
 | 4 | Parsing dan layout Markdown | Fixture dan conformance test CommonMark/GFM lulus |
 | 5 | Interaksi TUI | Tema, zoom, resize, mouse, link, dan clipboard memenuhi spesifikasi |
 | 6 | Verifikasi lintas platform | Test otomatis dan smoke test manual selesai pada matriks sasaran |
-| 7 | Distribusi | Binary dan petunjuk instalasi siap sesuai metode yang dipilih |
+| 7 | Visual polish TUI | Tampilan akhir mengikuti `docs/DESIGN.md` tanpa mengubah kontrak produk |
+| 8 | Distribusi | Binary dan petunjuk instalasi siap sesuai metode yang dipilih |
 
 ## Fase 0: siapkan pekerjaan agent
 
@@ -142,7 +143,20 @@ Jika browser atau clipboard tidak tersedia, tampilkan pesan yang jelas dan janga
 
 **Gerbang:** seluruh kriteria wajib `docs/acceptance-criteria.md` lulus atau ada kegagalan yang disepakati secara eksplisit sebagai blocker sebelum rilis.
 
-## Fase 7: distribusi dan instalasi
+## Fase 7: visual polish TUI
+
+Setelah verifikasi lintas platform, lakukan satu tahap akhir untuk menerapkan arahan visual di `docs/DESIGN.md`. Tahap ini menyempurnakan presentasi TUI yang sudah berfungsi; bukan alasan untuk menambah fitur atau mengubah perilaku produk.
+
+- Audit tampilan TUI yang ada terhadap suasana, hierarki, kepadatan, tema, kontras, dan interaksi yang dijelaskan di `docs/DESIGN.md`.
+- Perbaiki hal visual yang menghambat pembacaan atau membuat fokus, seleksi, pesan, maupun hierarki Markdown sulit dikenali.
+- Pertahankan perilaku dan batas pada `docs/command-spec.md` serta `docs/acceptance-criteria.md`, termasuk tema, `NO_COLOR`, terminal minimum 40×10, fallback tanpa warna, dan akses keyboard.
+- Jangan menambahkan panel, dashboard, ornamen wajib, animasi, atau fitur baru hanya untuk membuat tampilan lebih dekoratif.
+- Uji tampilan pada lebar 40, 80, dan 120 kolom, serta tema `auto`, `dark`, `light`, `transparent`, dan `NO_COLOR` sejauh lingkungan mengizinkan.
+- Ulangi pemeriksaan otomatis dan smoke test yang terdampak perubahan. Jangan menganggap bukti visual sebelum tahap ini otomatis mencakup tampilan setelah perubahan.
+
+**Gerbang:** perubahan lulus test relevan, tinjauan visual pada terminal/simulasi yang tersedia, serta pemeriksaan smoke manual yang benar-benar dijalankan dan dicatat. Keterbatasan platform tetap ditulis apa adanya.
+
+## Fase 8: distribusi dan instalasi
 
 Sasaran produk adalah pengguna dapat memasang dari terminal dan menjalankan tanpa memasang Go. Sebelum mengumumkan instalasi:
 
@@ -182,5 +196,5 @@ Sesuaikan command jika struktur proyek atau CI menetapkan cara lain; `AGENTS.md`
 - Perubahan pada sintaks atau perilaku command harus memperbarui `docs/command-spec.md`.
 - Perubahan pada kondisi lulus atau fixture harus memperbarui `docs/acceptance-criteria.md`.
 - Perubahan dependency/arsitektur harus memperbarui analisis teknis dan alasan pemilihan.
-- Perubahan instalasi atau penggunaan harus memperbarui kedua bahasa di `README.md`.
+- Perubahan instalasi atau penggunaan harus memperbarui `README.md` dalam Bahasa Inggris.
 - Perubahan command build/test yang telah diverifikasi harus dicatat di `AGENTS.md`.

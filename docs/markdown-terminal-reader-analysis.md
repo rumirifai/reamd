@@ -36,7 +36,7 @@ Capture hanya memuat halaman awal dan sample bawaan. Tombol, upload file, peruba
 | Tabel lebar | Rekomendasi: tabel biasa jika muat, tampilan bertumpuk jika terminal terlalu sempit |
 | Zoom | Mulai 100%, langkah 10%, batas 70%-150%, `=`/`+` memperbesar, `-` memperkecil, `0` mereset; mengubah layout aplikasi, bukan ukuran font terminal |
 | Tema | `auto` (default), `dark`, `light`, `transparent`; rincian ada di spesifikasi command |
-| Bahasa | Dokumen kerja dalam Bahasa Indonesia; README untuk pengguna GitHub disiapkan dalam Bahasa Inggris dan Bahasa Indonesia |
+| Bahasa | Dokumen kerja/internal dalam Bahasa Indonesia; README untuk pengguna GitHub hanya dalam Bahasa Inggris |
 | Bahasa pemrograman | Go dipilih sebagai bahasa implementasi |
 | Parser dan TUI | Goldmark dan `tcell/v2` disetujui untuk implementasi setelah evaluasi Ticket 01 |
 | Toolchain minimum | Go 1.25 disetujui; pasangan patch minimum dependency transitif yang diperiksa dicatat di evaluasi stack |

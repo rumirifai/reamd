@@ -29,7 +29,8 @@ Fase 0 workflow bukan ticket produk tersendiri. Checklist persiapan fase 0 diula
 | [08](08-mouse-scrollbar.md) | 5 | Tambahkan scroll mouse dan scrollbar | 02 |
 | [09](09-selection-clipboard.md) | 5 | Seleksi teks dan copy ke clipboard | 08 |
 | [10](10-cross-platform-verification.md) | 6 | Verifikasi lintas platform | 04-09 |
-| [11](11-distribution.md) | 7 | Siapkan distribusi dan instalasi | 10 |
+| [11](11-visual-polish.md) | 7 | Poles visual TUI sesuai arahan Ocean | 10 |
+| [12](12-distribution.md) | 8 | Siapkan distribusi dan instalasi | 10, 11 |
 
 Ticket 04, 05, 06, 07, dan 08 dapat dikerjakan paralel setelah blocker masing-masing selesai. Ticket 09 menunggu dukungan scroll mouse sebagai fondasi pemetaan seleksi di area dokumen.
 
