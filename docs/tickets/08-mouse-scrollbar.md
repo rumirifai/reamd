@@ -16,6 +16,6 @@
 
 **Bukti otomatis:** test mencakup wheel naik/turun, klik track di kedua ujung, posisi dan ukuran thumb, drag thumb, penolakan event mouse saat kapabilitas tidak tersedia, fallback navigasi keyboard, serta aktivasi link dengan mouse pada screen simulasi yang melaporkan dukungan mouse.
 
-**Smoke test manual:** pengguna melaporkan telah menjalankan seluruh langkah pengujian yang diberikan, termasuk pengujian pada terminal dengan mouse dan pemeriksaan fallback keyboard, tanpa menemukan keanehan atau error. OS dan nama/versi terminal tidak disertakan dalam laporan, sehingga detail lingkungan tidak dapat dicatat.
+**Smoke test manual:** Windows 10, aplikasi Windows Terminal, profile Windows PowerShell (nama/versi Windows Terminal tidak dicatat; profile dan aplikasi terminal terlihat pada screenshot pengguna). Pengguna melaporkan telah menjalankan seluruh langkah pengujian, termasuk wheel, scrollbar, terminal dengan mouse, dan fallback keyboard, tanpa menemukan keanehan atau error.
 
 **Hasil:** checklist Ticket 08 terpenuhi berdasarkan test otomatis dan laporan smoke test manual dari pengguna.
